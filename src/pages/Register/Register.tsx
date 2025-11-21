@@ -1,0 +1,246 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { HiUser, HiMail, HiLockClosed, HiEye, HiEyeOff } from "react-icons/hi";
+import { useAuth } from "../../hooks/useAuth";
+import type { RegisterCredentials } from "../../types/user";
+import "./Register.css";
+
+const Register: React.FC = () => {
+  const navigate = useNavigate();
+  const { register, loading } = useAuth();
+  const [formData, setFormData] = useState<RegisterCredentials>({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [errors, setErrors] = useState<Partial<RegisterCredentials>>({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<RegisterCredentials> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Nome completo é obrigatório";
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = "Nome deve ter no mínimo 3 caracteres";
+    }
+
+    if (!formData.email) {
+      newErrors.email = "E-mail é obrigatório";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "E-mail inválido";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Senha é obrigatória";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Senha deve ter no mínimo 8 caracteres";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = "Senha deve conter maiúsculas, minúsculas e números";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Confirmação de senha é obrigatória";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "As senhas não coincidem";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const clearInput = () => {
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setErrors({});
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+      navigate("/dashboard");
+      clearInput();
+    } catch (error) {
+      console.error("Erro ao registrar usuário:", error);
+      setErrors({
+        name: "Erro ao registrar usuário",
+        email: "Erro ao registrar usuário",
+        password: "Erro ao registrar usuário",
+        confirmPassword: "Erro ao registrar usuário",
+      });
+    }
+  };
+
+  return (
+    <div className="register-container">
+      <div className="register-background">
+        <div className="shape-1"></div>
+        <div className="shape-2"></div>
+        <div className="shape-3"></div>
+      </div>
+
+      <div className="register-card">
+        <div className="register-header">
+          <div className="logo-container">
+            <div className="logo-icon">
+              <HiUser />
+            </div>
+          </div>
+          <h1>Criar Nova Conta</h1>
+          <p>Preencha seus dados para acessar a plataforma de gestão</p>
+        </div>
+
+        <form className="register-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="name">Nome Completo</label>
+            <div className="input-wrapper">
+              <HiUser className="input-icon" />
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="João Silva"
+                className={errors.name ? "error" : ""}
+              />
+            </div>
+            {errors.name && (
+              <span className="error-message">{errors.name}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">E-mail Corporativo</label>
+            <div className="input-wrapper">
+              <HiMail className="input-icon" />
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="joao.silva@empresa.com"
+                className={errors.email ? "error" : ""}
+              />
+            </div>
+            {errors.email && (
+              <span className="error-message">{errors.email}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Senha</label>
+            <div className="input-wrapper">
+              <HiLockClosed className="input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Mínimo 8 caracteres"
+                className={errors.password ? "error" : ""}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <HiEyeOff /> : <HiEye />}
+              </button>
+            </div>
+            {errors.password && (
+              <span className="error-message">{errors.password}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirmar Senha</label>
+            <div className="input-wrapper">
+              <HiLockClosed className="input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Digite a senha novamente"
+                className={errors.confirmPassword ? "error" : ""}
+              />
+            </div>
+            {errors.confirmPassword && (
+              <span className="error-message">{errors.confirmPassword}</span>
+            )}
+          </div>
+
+          <div className="form-group checkbox-group">
+            <label className="checkbox-container">
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                onChange={handleChange}
+              />
+              <span className="checkmark"></span>
+              <span className="checkbox-label">
+                Eu aceito os termos de uso e a política de privacidade
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Criando conta..." : "Criar Conta"}
+          </button>
+
+          <div className="divider">
+            <span>ou</span>
+          </div>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => navigate("/login")}
+          >
+            Já tenho uma conta
+          </button>
+        </form>
+
+        <div className="register-footer">
+          <p>© 2025 Sistema de Gestão RH. Todos os direitos reservados.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
