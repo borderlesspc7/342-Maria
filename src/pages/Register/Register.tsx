@@ -121,10 +121,10 @@ const Register: React.FC = () => {
         </div>
 
         <form className="register-form" onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className="register-form-group">
             <label htmlFor="name">Nome Completo</label>
-            <div className="input-wrapper">
-              <HiUser className="input-icon" />
+            <div className="register-input-wrapper">
+              <HiUser className="register-input-icon" />
               <input
                 type="text"
                 id="name"
@@ -136,14 +136,14 @@ const Register: React.FC = () => {
               />
             </div>
             {errors.name && (
-              <span className="error-message">{errors.name}</span>
+              <span className="register-error-message">{errors.name}</span>
             )}
           </div>
 
-          <div className="form-group">
+          <div className="register-form-group">
             <label htmlFor="email">E-mail Corporativo</label>
-            <div className="input-wrapper">
-              <HiMail className="input-icon" />
+            <div className="register-input-wrapper">
+              <HiMail className="register-input-icon" />
               <input
                 type="email"
                 id="email"
@@ -155,14 +155,14 @@ const Register: React.FC = () => {
               />
             </div>
             {errors.email && (
-              <span className="error-message">{errors.email}</span>
+              <span className="register-error-message">{errors.email}</span>
             )}
           </div>
 
-          <div className="form-group">
+          <div className="register-form-group">
             <label htmlFor="password">Senha</label>
-            <div className="input-wrapper">
-              <HiLockClosed className="input-icon" />
+            <div className="register-input-wrapper">
+              <HiLockClosed className="register-input-icon" />
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
@@ -174,21 +174,21 @@ const Register: React.FC = () => {
               />
               <button
                 type="button"
-                className="toggle-password"
+                className="register-toggle-password"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <HiEyeOff /> : <HiEye />}
               </button>
             </div>
             {errors.password && (
-              <span className="error-message">{errors.password}</span>
+              <span className="register-error-message">{errors.password}</span>
             )}
           </div>
 
-          <div className="form-group">
+          <div className="register-form-group">
             <label htmlFor="confirmPassword">Confirmar Senha</label>
-            <div className="input-wrapper">
-              <HiLockClosed className="input-icon" />
+            <div className="register-input-wrapper">
+              <HiLockClosed className="register-input-icon" />
               <input
                 type={showPassword ? "text" : "password"}
                 id="confirmPassword"
@@ -200,35 +200,35 @@ const Register: React.FC = () => {
               />
             </div>
             {errors.confirmPassword && (
-              <span className="error-message">{errors.confirmPassword}</span>
+              <span className="register-error-message">{errors.confirmPassword}</span>
             )}
           </div>
 
-          <div className="form-group checkbox-group">
-            <label className="checkbox-container">
+          <div className="register-form-group register-checkbox-group">
+            <label className="register-checkbox-container">
               <input
                 type="checkbox"
                 name="termsAccepted"
                 onChange={handleChange}
               />
-              <span className="checkmark"></span>
-              <span className="checkbox-label">
+              <span className="register-checkmark"></span>
+              <span className="register-checkbox-label">
                 Eu aceito os termos de uso e a política de privacidade
               </span>
             </label>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="register-btn-primary" disabled={loading}>
             {loading ? "Criando conta..." : "Criar Conta"}
           </button>
 
-          <div className="divider">
+          <div className="register-divider">
             <span>ou</span>
           </div>
 
           <button
             type="button"
-            className="btn-secondary"
+            className="register-btn-secondary"
             onClick={() => navigate("/login")}
           >
             Já tenho uma conta

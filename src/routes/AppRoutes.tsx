@@ -34,14 +34,7 @@ export function AppRoutes() {
             </ProtectedRoutes>
           }
         />
-        <Route
-          path={paths.boletinsMedicao}
-          element={
-            <ProtectedRoutes>
-              <BoletinsMedicao />
-            </ProtectedRoutes>
-          }
-        />
+        <Route path={paths.boletinsMedicao} element={<BoletinsMedicao />} />
         <Route
           path={paths.documentacoes}
           element={

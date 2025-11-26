@@ -1,20 +1,723 @@
-import React from 'react';
-import { Layout } from '../../components/Layout';
+import React, { useState, useEffect } from "react";
+import { Layout } from "../../components/Layout";
+import {
+  HiPlus,
+  HiSearch,
+  HiFilter,
+  HiDocumentText,
+  HiCheckCircle,
+  HiClock,
+  HiExclamationCircle,
+  HiX,
+  HiPaperClip,
+  HiTrash,
+  HiPencil,
+} from "react-icons/hi";
+import type {
+  BoletimMedicao,
+  BoletimFilters,
+  BoletimStatus,
+  TipoServico,
+} from "../../types/boletimMedicao";
+import { boletimMedicaoService } from "../../services/boletimMedicaoService";
+import "./BoletinsMedicao.css";
 
 const BoletinsMedicao: React.FC = () => {
+  const [boletins, setBoletins] = useState<BoletimMedicao[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingBoletim, setEditingBoletim] = useState<BoletimMedicao | null>(
+    null
+  );
+  const [filters, setFilters] = useState<BoletimFilters>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [stats, setStats] = useState({
+    totalEmitidoMes: 0,
+    saldoPendente: 0,
+    totalBoletins: 0,
+    aguardandoAssinatura: 0,
+  });
+
+  const meses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+
+  const anos = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const tiposServico: TipoServico[] = [
+    "Instalação",
+    "Manutenção",
+    "Vistoria",
+    "Outro",
+  ];
+  const statusOptions: BoletimStatus[] = [
+    "Emitido",
+    "Pendente",
+    "Aguardando assinatura",
+  ];
+
+  useEffect(() => {
+    loadBoletins();
+    loadStats();
+  }, [filters]);
+
+  const loadBoletins = async () => {
+    try {
+      setLoading(true);
+      const data = await boletimMedicaoService.getAll(filters);
+      setBoletins(data);
+    } catch (error) {
+      console.error("Erro ao carregar boletins:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const currentDate = new Date();
+      const statsData = await boletimMedicaoService.getStats(
+        currentDate.getFullYear(),
+        meses[currentDate.getMonth()]
+      );
+      setStats(statsData);
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas:", error);
+    }
+  };
+
+  const handleFilterChange = (key: keyof BoletimFilters, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value || undefined,
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este boletim?")) {
+      try {
+        await boletimMedicaoService.delete(id);
+        loadBoletins();
+        loadStats();
+      } catch (error) {
+        console.error("Erro ao excluir boletim:", error);
+        alert("Erro ao excluir boletim");
+      }
+    }
+  };
+
+  const getStatusIcon = (status: BoletimStatus) => {
+    switch (status) {
+      case "Emitido":
+        return <HiCheckCircle className="status-icon status-emitido" />;
+      case "Pendente":
+        return <HiClock className="status-icon status-pendente" />;
+      case "Aguardando assinatura":
+        return <HiExclamationCircle className="status-icon status-aguardando" />;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("pt-BR").format(date);
+  };
+
   return (
     <Layout>
-      <div>
-        <h1 style={{ fontSize: '28px', fontWeight: '600', color: '#1a202c', marginBottom: '8px' }}>
-          Boletins de Medição
-        </h1>
-        <p style={{ color: '#718096', fontSize: '16px' }}>
-          Controle e gestão de boletins de medição
-        </p>
+      <div className="boletins-medicao">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Boletins de Medição</h1>
+            <p className="page-subtitle">
+              Controle e gestão de boletins de medição
+            </p>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditingBoletim(null);
+              setShowModal(true);
+            }}
+          >
+            <HiPlus />
+            Novo Boletim
+          </button>
+        </div>
+
+        <div className="stats-cards">
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-green">
+              <HiDocumentText />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Total Emitido no Mês</h3>
+              <p className="stat-value stat-value-success">
+                {formatCurrency(stats.totalEmitidoMes)}
+              </p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-orange">
+              <HiClock />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Saldo Pendente</h3>
+              <p className="stat-value stat-value-warning">
+                {formatCurrency(stats.saldoPendente)}
+              </p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-blue">
+              <HiDocumentText />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Total de Boletins</h3>
+              <p className="stat-value">{stats.totalBoletins}</p>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-purple">
+              <HiExclamationCircle />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Aguardando Assinatura</h3>
+              <p className="stat-value stat-value-purple">
+                {stats.aguardandoAssinatura}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="filters-section">
+          <div className="filters-header">
+            <button
+              className="btn-filter"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <HiFilter />
+              Filtros
+            </button>
+            <div className="search-box">
+              <HiSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Pesquisar por cliente..."
+                value={filters.cliente || ""}
+                onChange={(e) => handleFilterChange("cliente", e.target.value)}
+              />
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="filters-panel">
+              <div className="filter-group">
+                <label>Mês</label>
+                <select
+                  value={filters.mes || ""}
+                  onChange={(e) => handleFilterChange("mes", e.target.value)}
+                >
+                  <option value="">Todos os meses</option>
+                  {meses.map((mes) => (
+                    <option key={mes} value={mes}>
+                      {mes}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Ano</label>
+                <select
+                  value={filters.ano || ""}
+                  onChange={(e) =>
+                    handleFilterChange("ano", e.target.value ? Number(e.target.value) : undefined)
+                  }
+                >
+                  <option value="">Todos os anos</option>
+                  {anos.map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Tipo de Serviço</label>
+                <select
+                  value={filters.tipoServico || ""}
+                  onChange={(e) =>
+                    handleFilterChange("tipoServico", e.target.value as TipoServico)
+                  }
+                >
+                  <option value="">Todos os tipos</option>
+                  {tiposServico.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Status</label>
+                <select
+                  value={filters.status || ""}
+                  onChange={(e) =>
+                    handleFilterChange("status", e.target.value as BoletimStatus)
+                  }
+                >
+                  <option value="">Todos os status</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="btn-clear-filters" onClick={clearFilters}>
+                Limpar Filtros
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="table-container">
+          {loading ? (
+            <div className="loading">Carregando...</div>
+          ) : boletins.length === 0 ? (
+            <div className="empty-state">
+              <HiDocumentText className="empty-icon" />
+              <p>Nenhum boletim encontrado</p>
+            </div>
+          ) : (
+            <table className="boletins-table">
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Cliente</th>
+                  <th>Mês/Ano</th>
+                  <th>Tipo de Serviço</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Data Emissão</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {boletins.map((boletim) => (
+                  <tr key={boletim.id}>
+                    <td className="font-mono">{boletim.numero}</td>
+                    <td>{boletim.cliente}</td>
+                    <td>
+                      {boletim.mesReferencia}/{boletim.anoReferencia}
+                    </td>
+                    <td>{boletim.tipoServico}</td>
+                    <td className="font-semibold">
+                      {formatCurrency(boletim.valor)}
+                    </td>
+                    <td>
+                      <div className="status-badge">
+                        {getStatusIcon(boletim.status)}
+                        <span>{boletim.status}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {boletim.dataEmissao
+                        ? formatDate(boletim.dataEmissao)
+                        : "-"}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn-icon"
+                          onClick={() => {
+                            setEditingBoletim(boletim);
+                            setShowModal(true);
+                          }}
+                          title="Editar"
+                        >
+                          <HiPencil />
+                        </button>
+                        <button
+                          className="btn-icon btn-icon-danger"
+                          onClick={() => handleDelete(boletim.id)}
+                          title="Excluir"
+                        >
+                          <HiTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {showModal && (
+          <BoletimModal
+            boletim={editingBoletim}
+            onClose={() => {
+              setShowModal(false);
+              setEditingBoletim(null);
+            }}
+            onSave={() => {
+              setShowModal(false);
+              setEditingBoletim(null);
+              loadBoletins();
+              loadStats();
+            }}
+          />
+        )}
       </div>
     </Layout>
   );
 };
 
-export default BoletinsMedicao;
+interface BoletimModalProps {
+  boletim: BoletimMedicao | null;
+  onClose: () => void;
+  onSave: () => void;
+}
 
+const BoletimModal: React.FC<BoletimModalProps> = ({
+  boletim,
+  onClose,
+  onSave,
+}) => {
+  const [formData, setFormData] = useState({
+    cliente: boletim?.cliente || "",
+    mesReferencia: boletim?.mesReferencia || "",
+    anoReferencia: boletim?.anoReferencia || new Date().getFullYear(),
+    tipoServico: (boletim?.tipoServico || "Instalação") as TipoServico,
+    status: (boletim?.status || "Pendente") as BoletimStatus,
+    valor: boletim?.valor || 0,
+    dataEmissao: boletim?.dataEmissao
+      ? new Date(boletim.dataEmissao).toISOString().split("T")[0]
+      : "",
+    dataVencimento: boletim?.dataVencimento
+      ? new Date(boletim.dataVencimento).toISOString().split("T")[0]
+      : "",
+    observacoes: boletim?.observacoes || "",
+    anexos: [] as File[],
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const meses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+
+  const anos = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const tiposServico: TipoServico[] = [
+    "Instalação",
+    "Manutenção",
+    "Vistoria",
+    "Outro",
+  ];
+  const statusOptions: BoletimStatus[] = [
+    "Emitido",
+    "Pendente",
+    "Aguardando assinatura",
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const data = {
+        ...formData,
+        dataEmissao: formData.dataEmissao
+          ? new Date(formData.dataEmissao)
+          : undefined,
+        dataVencimento: formData.dataVencimento
+          ? new Date(formData.dataVencimento)
+          : undefined,
+      };
+
+      if (boletim) {
+        await boletimMedicaoService.update(boletim.id, data);
+      } else {
+        await boletimMedicaoService.create(data);
+      }
+      onSave();
+    } catch (error) {
+      console.error("Erro ao salvar boletim:", error);
+      alert("Erro ao salvar boletim");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFormData((prev) => ({
+        ...prev,
+        anexos: Array.from(e.target.files || []),
+      }));
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{boletim ? "Editar Boletim" : "Novo Boletim de Medição"}</h2>
+          <button className="btn-close" onClick={onClose}>
+            <HiX />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-row">
+            <div className="form-group">
+              <label>Cliente *</label>
+              <input
+                type="text"
+                required
+                value={formData.cliente}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, cliente: e.target.value }))
+                }
+                placeholder="Nome do cliente"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Mês de Referência *</label>
+              <select
+                required
+                value={formData.mesReferencia}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    mesReferencia: e.target.value,
+                  }))
+                }
+              >
+                <option value="">Selecione...</option>
+                {meses.map((mes) => (
+                  <option key={mes} value={mes}>
+                    {mes}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Ano de Referência *</label>
+              <select
+                required
+                value={formData.anoReferencia}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    anoReferencia: Number(e.target.value),
+                  }))
+                }
+              >
+                {anos.map((ano) => (
+                  <option key={ano} value={ano}>
+                    {ano}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Tipo de Serviço *</label>
+              <select
+                required
+                value={formData.tipoServico}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tipoServico: e.target.value as TipoServico,
+                  }))
+                }
+              >
+                {tiposServico.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Status *</label>
+              <select
+                required
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: e.target.value as BoletimStatus,
+                  }))
+                }
+              >
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Valor (R$) *</label>
+              <input
+                type="number"
+                required
+                step="0.01"
+                min="0"
+                value={formData.valor}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    valor: Number(e.target.value),
+                  }))
+                }
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Data de Emissão</label>
+              <input
+                type="date"
+                value={formData.dataEmissao}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    dataEmissao: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Data de Vencimento</label>
+              <input
+                type="date"
+                value={formData.dataVencimento}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    dataVencimento: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Observações</label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  observacoes: e.target.value,
+                }))
+              }
+              rows={4}
+              placeholder="Observações adicionais..."
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Anexar Arquivos</label>
+            <div className="file-upload">
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="file-upload-label">
+                <HiPaperClip />
+                Selecionar arquivos (PDF, NF, OS, etc.)
+              </label>
+              {formData.anexos.length > 0 && (
+                <div className="file-list">
+                  {formData.anexos.map((file, index) => (
+                    <div key={index} className="file-item">
+                      <HiDocumentText />
+                      <span>{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            anexos: prev.anexos.filter((_, i) => i !== index),
+                          }));
+                        }}
+                      >
+                        <HiX />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? "Salvando..." : boletim ? "Atualizar" : "Criar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default BoletinsMedicao;

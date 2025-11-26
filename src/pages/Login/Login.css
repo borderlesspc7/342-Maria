@@ -120,25 +120,25 @@
   gap: 24px;
 }
 
-.form-group {
+.login-form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-group label {
+.login-form-group label {
   font-size: 14px;
   font-weight: 600;
   color: #2d3748;
 }
 
-.input-wrapper {
+.login-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-icon {
+.login-input-icon {
   position: absolute;
   left: 16px;
   width: 20px;
@@ -147,7 +147,7 @@
   pointer-events: none;
 }
 
-.form-group input {
+.login-form-group input {
   width: 100%;
   padding: 14px 16px 14px 48px;
   border: 2px solid #e2e8f0;
@@ -158,34 +158,34 @@
   color: #2d3748;
 }
 
-.form-group input:focus {
+.login-form-group input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.form-group input.error {
+.login-form-group input.error {
   border-color: #fc8181;
 }
 
-.form-group input::placeholder {
+.login-form-group input::placeholder {
   color: #cbd5e0;
 }
 
-.error-message {
+.login-error-message {
   font-size: 13px;
   color: #fc8181;
   margin-top: 4px;
 }
 
-.form-options {
+.login-form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: -8px 0;
 }
 
-.checkbox-container {
+.login-checkbox-container {
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -196,7 +196,7 @@
   padding-left: 28px;
 }
 
-.checkbox-container input {
+.login-checkbox-container input {
   position: absolute;
   opacity: 0;
   cursor: pointer;
@@ -204,7 +204,7 @@
   width: 0;
 }
 
-.checkmark {
+.login-checkmark {
   position: absolute;
   left: 0;
   height: 20px;
@@ -215,16 +215,16 @@
   transition: all 0.3s ease;
 }
 
-.checkbox-container:hover input ~ .checkmark {
+.login-checkbox-container:hover input ~ .login-checkmark {
   border-color: #667eea;
 }
 
-.checkbox-container input:checked ~ .checkmark {
+.login-checkbox-container input:checked ~ .login-checkmark {
   background-color: #667eea;
   border-color: #667eea;
 }
 
-.checkmark:after {
+.login-checkmark:after {
   content: "";
   position: absolute;
   display: none;
@@ -237,11 +237,11 @@
   transform: rotate(45deg);
 }
 
-.checkbox-container input:checked ~ .checkmark:after {
+.login-checkbox-container input:checked ~ .login-checkmark:after {
   display: block;
 }
 
-.forgot-password {
+.login-forgot-password {
   font-size: 14px;
   color: #667eea;
   text-decoration: none;
@@ -249,12 +249,12 @@
   transition: color 0.3s ease;
 }
 
-.forgot-password:hover {
+.login-forgot-password:hover {
   color: #764ba2;
 }
 
-.btn-primary,
-.btn-secondary {
+.login-btn-primary,
+.login-btn-secondary {
   width: 100%;
   padding: 14px 24px;
   border: none;
@@ -269,47 +269,47 @@
   gap: 8px;
 }
 
-.btn-primary {
+.login-btn-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.btn-primary:hover {
+.login-btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
 
-.btn-primary:active {
+.login-btn-primary:active {
   transform: translateY(0);
 }
 
-.btn-secondary {
+.login-btn-secondary {
   background: white;
   color: #667eea;
   border: 2px solid #e2e8f0;
 }
 
-.btn-secondary:hover {
+.login-btn-secondary:hover {
   background: #f7fafc;
   border-color: #667eea;
 }
 
-.divider {
+.login-divider {
   display: flex;
   align-items: center;
   text-align: center;
   margin: 8px 0;
 }
 
-.divider::before,
-.divider::after {
+.login-divider::before,
+.login-divider::after {
   content: "";
   flex: 1;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.divider span {
+.login-divider span {
   padding: 0 16px;
   color: #a0aec0;
   font-size: 14px;
@@ -336,7 +336,7 @@
     font-size: 28px;
   }
 
-  .form-options {
+  .login-form-options {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;

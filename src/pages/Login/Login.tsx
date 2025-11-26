@@ -89,10 +89,10 @@ const Login: React.FC = () => {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className="login-form-group">
             <label htmlFor="email">E-mail</label>
-            <div className="input-wrapper">
-              <HiMail className="input-icon" />
+            <div className="login-input-wrapper">
+              <HiMail className="login-input-icon" />
               <input
                 type="email"
                 id="email"
@@ -105,14 +105,14 @@ const Login: React.FC = () => {
               />
             </div>
             {errors.email && (
-              <span className="error-message">{errors.email}</span>
+              <span className="login-error-message">{errors.email}</span>
             )}
           </div>
 
-          <div className="form-group">
+          <div className="login-form-group">
             <label htmlFor="password">Senha</label>
-            <div className="input-wrapper">
-              <HiLockClosed className="input-icon" />
+            <div className="login-input-wrapper">
+              <HiLockClosed className="login-input-icon" />
               <input
                 type="password"
                 id="password"
@@ -125,34 +125,34 @@ const Login: React.FC = () => {
               />
             </div>
             {errors.password && (
-              <span className="error-message">{errors.password}</span>
+              <span className="login-error-message">{errors.password}</span>
             )}
           </div>
 
-          <div className="form-options">
-            <label className="checkbox-container">
+          <div className="login-form-options">
+            <label className="login-checkbox-container">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
-              <span className="checkmark"></span>
+              <span className="login-checkmark"></span>
               Lembrar-me
             </label>
-            <a href="#" className="forgot-password">
+            <a href="#" className="login-forgot-password">
               Esqueceu a senha?
             </a>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="login-btn-primary" disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
-          <div className="divider"></div>
+          <div className="login-divider"></div>
 
           <button
             type="button"
-            className="btn-secondary"
+            className="login-btn-secondary"
             onClick={() => navigate("/register")}
           >
             Criar nova conta
