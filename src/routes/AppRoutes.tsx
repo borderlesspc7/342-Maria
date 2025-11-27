@@ -28,11 +28,7 @@ export function AppRoutes() {
         />
         <Route
           path={paths.premiosProdutividade}
-          element={
-            <ProtectedRoutes>
-              <PremiosProdutividade />
-            </ProtectedRoutes>
-          }
+          element={<PremiosProdutividade />}
         />
         <Route path={paths.boletinsMedicao} element={<BoletinsMedicao />} />
         <Route
