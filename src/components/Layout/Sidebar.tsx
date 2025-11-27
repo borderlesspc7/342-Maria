@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
+import { NavLink } from "react-router-dom";
+import {
   HiHome,
   HiTrendingUp,
   HiDocumentText,
@@ -9,9 +8,9 @@ import {
   HiClipboardList,
   HiChartBar,
   HiChevronLeft,
-  HiChevronRight
-} from 'react-icons/hi';
-import './Sidebar.css';
+  HiChevronRight,
+} from "react-icons/hi";
+import "./Sidebar.css";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -21,44 +20,44 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const menuItems = [
     {
-      path: '/dashboard',
+      path: "/dashboard",
       icon: HiHome,
-      label: 'Dashboard',
+      label: "Dashboard",
     },
     {
-      path: '/premios-produtividade',
+      path: "/premios-produtividade",
       icon: HiTrendingUp,
-      label: 'Prêmio de Produtividade',
+      label: "Prêmio de Produtividade",
     },
     {
-      path: '/boletins-medicao',
+      path: "/boletins-medicao",
       icon: HiDocumentText,
-      label: 'Boletins de Medição',
+      label: "Boletins de Medição",
     },
     {
-      path: '/documentacoes',
+      path: "/documentacoes",
       icon: HiFolder,
-      label: 'Documentações e Integrações',
+      label: "Documentações e Integrações",
     },
     {
-      path: '/caderno-virtual',
+      path: "/caderno-virtual",
       icon: HiBookOpen,
-      label: 'Caderno Virtual',
+      label: "Caderno Virtual",
     },
     {
-      path: '/lancamentos-diarios',
+      path: "/lancamentos-diarios",
       icon: HiClipboardList,
-      label: 'Lançamentos Diários',
+      label: "Lançamentos Diários",
     },
     {
-      path: '/relatorios',
+      path: "/relatorios",
       icon: HiChartBar,
-      label: 'Relatórios',
+      label: "Relatórios",
     },
   ];
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <div className="logo-icon">RH</div>
@@ -75,11 +74,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                 <NavLink
                   to={item.path}
                   className={({ isActive }) =>
-                    `nav-link ${isActive ? 'active' : ''}`
+                    `nav-link ${isActive ? "active" : ""}`
                   }
                 >
                   <Icon className="nav-icon" />
-                  {!collapsed && <span className="nav-label">{item.label}</span>}
+                  {!collapsed && (
+                    <span className="nav-label">{item.label}</span>
+                  )}
                 </NavLink>
               </li>
             );
@@ -87,7 +88,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         </ul>
       </nav>
 
-      <button className="sidebar-toggle" onClick={onToggle} aria-label="Toggle sidebar">
+      <button
+        className="sidebar-toggle"
+        onClick={onToggle}
+        aria-label="Toggle sidebar"
+      >
         {collapsed ? <HiChevronRight /> : <HiChevronLeft />}
       </button>
     </aside>
@@ -95,4 +100,3 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 };
 
 export default Sidebar;
-
