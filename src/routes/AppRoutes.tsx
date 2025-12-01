@@ -7,7 +7,7 @@ import Dashboard from "../pages/Dashboard/Dashboard";
 import PremiosProdutividade from "../pages/PremiosProdutividade/PremiosProdutividade";
 import BoletinsMedicao from "../pages/BoletinsMedicao/BoletinsMedicao";
 import Documentacoes from "../pages/Documentacoes/Documentacoes";
-import LancamentosDiarios from "../pages/LancamentosDiarios/LancamentosDiarios";
+import CadernoVirtual from "../pages/CadernoVirtual/CadernoVirtual";
 import Relatorios from "../pages/Relatorios/Relatorios";
 
 export function AppRoutes() {
@@ -38,7 +38,14 @@ export function AppRoutes() {
             </ProtectedRoutes>
           }
         />
-        <Route path={paths.cadernoVirtual} element={<LancamentosDiarios />} />
+        <Route
+          path={paths.cadernoVirtual}
+          element={
+            <ProtectedRoutes>
+              <CadernoVirtual />
+            </ProtectedRoutes>
+          }
+        />
         <Route
           path={paths.relatorios}
           element={

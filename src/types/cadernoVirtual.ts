@@ -19,15 +19,14 @@ export interface LancamentoDiario {
   id: string;
   tipoMovimentacao: TipoMovimentacao;
   descricao: string;
-  valor?: number;
-  status: LancamentoStatus;
+  valor: number;
   dataLancamento: Date;
-  criadoPor: string;
-  criadoPorNome: string;
-  colaboradorId?: string;
-  colaboradorNome?: string;
+  status: LancamentoStatus;
+  colaboradorId: string;
+  colaboradorNome: string;
   observacoes?: string;
   anexos: AnexoLancamento[];
+  criadoPor: string;
   criadoEm: Date;
   atualizadoEm: Date;
 }
@@ -35,11 +34,11 @@ export interface LancamentoDiario {
 export interface LancamentoFormData {
   tipoMovimentacao: TipoMovimentacao;
   descricao: string;
-  valor?: number;
-  status: LancamentoStatus;
+  valor: number;
   dataLancamento: Date;
-  colaboradorId?: string;
-  colaboradorNome?: string;
+  status: LancamentoStatus;
+  colaboradorId: string;
+  colaboradorNome: string;
   observacoes?: string;
   anexos: File[];
 }
@@ -53,3 +52,9 @@ export interface LancamentoFilters {
   status?: LancamentoStatus;
 }
 
+export interface LancamentoStats {
+  totalRecebido: number;
+  totalPendente: number;
+  totalLancamentos: number;
+  totalPorTipo: Record<TipoMovimentacao, number>;
+}
