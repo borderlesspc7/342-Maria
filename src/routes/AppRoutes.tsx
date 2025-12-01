@@ -38,14 +38,7 @@ export function AppRoutes() {
             </ProtectedRoutes>
           }
         />
-        <Route
-          path={paths.cadernoVirtual}
-          element={
-            <ProtectedRoutes>
-              <CadernoVirtual />
-            </ProtectedRoutes>
-          }
-        />
+        <Route path={paths.cadernoVirtual} element={<CadernoVirtual />} />
         <Route
           path={paths.relatorios}
           element={
