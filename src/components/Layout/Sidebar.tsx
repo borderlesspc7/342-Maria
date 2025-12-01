@@ -5,7 +5,6 @@ import {
   HiDocumentText,
   HiFolder,
   HiBookOpen,
-  HiClipboardList,
   HiChartBar,
   HiChevronLeft,
   HiChevronRight,
@@ -43,11 +42,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       path: "/caderno-virtual",
       icon: HiBookOpen,
       label: "Caderno Virtual",
-    },
-    {
-      path: "/lancamentos-diarios",
-      icon: HiClipboardList,
-      label: "Lançamentos Diários",
     },
     {
       path: "/relatorios",
