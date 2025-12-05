@@ -30,14 +30,7 @@ export function AppRoutes() {
           element={<PremiosProdutividade />}
         />
         <Route path={paths.boletinsMedicao} element={<BoletinsMedicao />} />
-        <Route
-          path={paths.documentacoes}
-          element={
-            <ProtectedRoutes>
-              <Documentacoes />
-            </ProtectedRoutes>
-          }
-        />
+        <Route path={paths.documentacoes} element={<Documentacoes />} />
         <Route path={paths.cadernoVirtual} element={<CadernoVirtual />} />
         <Route path={paths.relatorios} element={<Relatorios />} />
       </Routes>
