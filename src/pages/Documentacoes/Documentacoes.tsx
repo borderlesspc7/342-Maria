@@ -14,7 +14,6 @@ import {
   HiX,
   HiCalendar,
   HiUser,
-  HiDownload,
   HiBell,
 } from "react-icons/hi";
 import { documentacoesService } from "../../services/documentacoesService";
@@ -47,7 +46,12 @@ const tiposDocumento: TipoDocumento[] = [
   "Outro",
 ];
 
-const statusOptions: StatusDocumento[] = ["Válido", "Vencido", "Vencendo", "Pendente"];
+const statusOptions: StatusDocumento[] = [
+  "Válido",
+  "Vencido",
+  "Vencendo",
+  "Pendente",
+];
 
 const Documentacoes: React.FC = () => {
   const { user } = useAuth();
@@ -64,11 +68,16 @@ const Documentacoes: React.FC = () => {
   const [filters, setFilters] = useState<DocumentoFilters>({});
   const [showModal, setShowModal] = useState(false);
   const [showTreinamentoModal, setShowTreinamentoModal] = useState(false);
-  const [editingDocumento, setEditingDocumento] = useState<Documento | null>(null);
-  const [editingTreinamento, setEditingTreinamento] = useState<Treinamento | null>(null);
+  const [editingDocumento, setEditingDocumento] = useState<Documento | null>(
+    null
+  );
+  const [editingTreinamento, setEditingTreinamento] =
+    useState<Treinamento | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<"documentos" | "treinamentos">("documentos");
+  const [activeTab, setActiveTab] = useState<"documentos" | "treinamentos">(
+    "documentos"
+  );
 
   const loadDocumentos = useCallback(async () => {
     setLoading(true);
@@ -167,7 +176,10 @@ const Documentacoes: React.FC = () => {
   const handleSaveTreinamento = async (formData: TreinamentoFormData) => {
     try {
       if (editingTreinamento) {
-        await documentacoesService.updateTreinamento(editingTreinamento.id, formData);
+        await documentacoesService.updateTreinamento(
+          editingTreinamento.id,
+          formData
+        );
       } else {
         await documentacoesService.createTreinamento(formData);
       }
@@ -262,14 +274,18 @@ const Documentacoes: React.FC = () => {
 
         <div className="documentacoes-tabs">
           <button
-            className={`documentacoes-tab ${activeTab === "documentos" ? "active" : ""}`}
+            className={`documentacoes-tab ${
+              activeTab === "documentos" ? "active" : ""
+            }`}
             onClick={() => setActiveTab("documentos")}
           >
             <HiDocumentText />
             Documentos
           </button>
           <button
-            className={`documentacoes-tab ${activeTab === "treinamentos" ? "active" : ""}`}
+            className={`documentacoes-tab ${
+              activeTab === "treinamentos" ? "active" : ""
+            }`}
             onClick={() => setActiveTab("treinamentos")}
           >
             <HiCalendar />
@@ -313,7 +329,9 @@ const Documentacoes: React.FC = () => {
                 </div>
                 <div className="documentacoes-stat-content">
                   <h3>Vencendo (7 dias)</h3>
-                  <p className="documentacoes-stat-value">{stats.vencendoEm7Dias}</p>
+                  <p className="documentacoes-stat-value">
+                    {stats.vencendoEm7Dias}
+                  </p>
                 </div>
               </div>
               <div className="documentacoes-stat-card">
@@ -322,7 +340,9 @@ const Documentacoes: React.FC = () => {
                 </div>
                 <div className="documentacoes-stat-content">
                   <h3>Vencendo (30 dias)</h3>
-                  <p className="documentacoes-stat-value">{stats.vencendoEm30Dias}</p>
+                  <p className="documentacoes-stat-value">
+                    {stats.vencendoEm30Dias}
+                  </p>
                 </div>
               </div>
             </div>
@@ -334,7 +354,9 @@ const Documentacoes: React.FC = () => {
                   type="text"
                   placeholder="Buscar por colaborador..."
                   value={filters.colaboradorNome || ""}
-                  onChange={(e) => handleFilterChange("colaboradorNome", e.target.value)}
+                  onChange={(e) =>
+                    handleFilterChange("colaboradorNome", e.target.value)
+                  }
                 />
               </div>
               <button
@@ -353,7 +375,10 @@ const Documentacoes: React.FC = () => {
                   <select
                     value={filters.tipoDocumento || ""}
                     onChange={(e) =>
-                      handleFilterChange("tipoDocumento", e.target.value || undefined)
+                      handleFilterChange(
+                        "tipoDocumento",
+                        e.target.value || undefined
+                      )
                     }
                   >
                     <option value="">Todos</option>
@@ -385,7 +410,9 @@ const Documentacoes: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={filters.vencidos || false}
-                      onChange={(e) => handleFilterChange("vencidos", e.target.checked)}
+                      onChange={(e) =>
+                        handleFilterChange("vencidos", e.target.checked)
+                      }
                     />
                     Apenas Vencidos
                   </label>
@@ -518,26 +545,35 @@ const Documentacoes: React.FC = () => {
               </div>
             ) : (
               treinamentos.map((treinamento) => (
-                <div key={treinamento.id} className="documentacoes-treinamento-card">
+                <div
+                  key={treinamento.id}
+                  className="documentacoes-treinamento-card"
+                >
                   <div className="documentacoes-treinamento-header">
                     <h3>{treinamento.titulo}</h3>
-                    <span className={`documentacoes-treinamento-status ${treinamento.status.toLowerCase()}`}>
+                    <span
+                      className={`documentacoes-treinamento-status ${treinamento.status.toLowerCase()}`}
+                    >
                       {treinamento.status}
                     </span>
                   </div>
-                  <p className="documentacoes-treinamento-desc">{treinamento.descricao}</p>
+                  <p className="documentacoes-treinamento-desc">
+                    {treinamento.descricao}
+                  </p>
                   <div className="documentacoes-treinamento-info">
                     <div>
                       <strong>Tipo:</strong> {treinamento.tipoDocumento}
                     </div>
                     <div>
-                      <strong>Início:</strong> {formatDate(treinamento.dataInicio)}
+                      <strong>Início:</strong>{" "}
+                      {formatDate(treinamento.dataInicio)}
                     </div>
                     <div>
                       <strong>Fim:</strong> {formatDate(treinamento.dataFim)}
                     </div>
                     <div>
-                      <strong>Participantes:</strong> {treinamento.colaboradores.length}
+                      <strong>Participantes:</strong>{" "}
+                      {treinamento.colaboradores.length}
                     </div>
                   </div>
                   <div className="documentacoes-treinamento-actions">
@@ -609,7 +645,9 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -727,7 +765,9 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
                     ? formData.dataEmissao.toISOString().split("T")[0]
                     : ""
                 }
-                onChange={(e) => handleDateChange("dataEmissao", e.target.value)}
+                onChange={(e) =>
+                  handleDateChange("dataEmissao", e.target.value)
+                }
               />
             </div>
           </div>
@@ -768,7 +808,11 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
           </div>
 
           <div className="documentacoes-modal-actions">
-            <button type="button" className="documentacoes-btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="documentacoes-btn-secondary"
+              onClick={onClose}
+            >
               Cancelar
             </button>
             <button type="submit" className="documentacoes-btn-primary">
@@ -802,7 +846,9 @@ const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -815,8 +861,13 @@ const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
     }));
   };
 
-  const handleColaboradoresChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
+  const handleColaboradoresChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selected = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
     setFormData((prev) => ({ ...prev, colaboradores: selected }));
   };
 
@@ -918,7 +969,11 @@ const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
           </div>
 
           <div className="documentacoes-modal-actions">
-            <button type="button" className="documentacoes-btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="documentacoes-btn-secondary"
+              onClick={onClose}
+            >
               Cancelar
             </button>
             <button type="submit" className="documentacoes-btn-primary">
