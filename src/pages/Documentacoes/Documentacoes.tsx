@@ -29,7 +29,13 @@ import type {
   Treinamento,
   TreinamentoFormData,
 } from "../../types/documentacoes";
-import { maskCPF, unmaskCPF, maskRG, maskCTPS, maskCNH } from "../../utils/masks";
+import {
+  maskCPF,
+  unmaskCPF,
+  maskRG,
+  maskCTPS,
+  maskCNH,
+} from "../../utils/masks";
 import "./Documentacoes.css";
 
 const tiposDocumento: TipoDocumento[] = [
@@ -651,7 +657,7 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    
+
     if (name === "numeroDocumento") {
       // Aplica máscara baseada no tipo de documento
       let maskedValue = value;
@@ -709,14 +715,16 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Remove máscaras antes de salvar
     const dataToSave = {
       ...formData,
       cpf: unmaskCPF(formData.cpf),
-      numeroDocumento: formData.numeroDocumento ? formData.numeroDocumento.replace(/\D/g, '') : '',
+      numeroDocumento: formData.numeroDocumento
+        ? formData.numeroDocumento.replace(/\D/g, "")
+        : "",
     };
-    
+
     onSave(dataToSave);
   };
 
