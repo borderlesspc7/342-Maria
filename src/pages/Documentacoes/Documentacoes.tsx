@@ -29,6 +29,7 @@ import type {
   Treinamento,
   TreinamentoFormData,
 } from "../../types/documentacoes";
+import { maskCPF, unmaskCPF, maskRG, maskCTPS, maskCNH } from "../../utils/masks";
 import "./Documentacoes.css";
 
 const tiposDocumento: TipoDocumento[] = [
@@ -632,7 +633,7 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
   const [formData, setFormData] = useState<DocumentoFormData>({
     colaboradorId: documento?.colaboradorId || "",
     colaboradorNome: documento?.colaboradorNome || "",
-    cpf: documento?.cpf || "",
+    cpf: maskCPF(documento?.cpf || ""),
     cargo: documento?.cargo || "",
     setor: documento?.setor || "",
     tipoDocumento: documento?.tipoDocumento || "ASO",
@@ -650,7 +651,30 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === "numeroDocumento") {
+      // Aplica máscara baseada no tipo de documento
+      let maskedValue = value;
+      switch (formData.tipoDocumento) {
+        case "CPF":
+          maskedValue = maskCPF(value);
+          break;
+        case "RG":
+          maskedValue = maskRG(value);
+          break;
+        case "CTPS":
+          maskedValue = maskCTPS(value);
+          break;
+        case "CNH":
+          maskedValue = maskCNH(value);
+          break;
+        default:
+          maskedValue = value;
+      }
+      setFormData((prev) => ({ ...prev, [name]: maskedValue }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDateChange = (name: string, value: string) => {
@@ -667,7 +691,7 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
         ...prev,
         colaboradorId: colaborador.id,
         colaboradorNome: colaborador.nome,
-        cpf: colaborador.cpf,
+        cpf: maskCPF(colaborador.cpf),
         cargo: colaborador.cargo,
         setor: colaborador.setor,
       }));
@@ -685,7 +709,15 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Remove máscaras antes de salvar
+    const dataToSave = {
+      ...formData,
+      cpf: unmaskCPF(formData.cpf),
+      numeroDocumento: formData.numeroDocumento ? formData.numeroDocumento.replace(/\D/g, '') : '',
+    };
+    
+    onSave(dataToSave);
   };
 
   return (

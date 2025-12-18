@@ -418,6 +418,7 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
       "Serviço") as TipoMovimentacao,
     descricao: lancamento?.descricao || "",
     valor: lancamento?.valor || 0,
+    valorDisplay: (lancamento?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     dataLancamento: lancamento?.dataLancamento
       ? new Date(lancamento.dataLancamento).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
@@ -436,10 +437,30 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "valor" ? Number(value) : value,
-    }));
+    
+    if (name === "valor") {
+      // Remove tudo que não é dígito
+      const cleaned = value.replace(/\D/g, '');
+      if (!cleaned) {
+        setFormData((prev) => ({
+          ...prev,
+          valor: 0,
+          valorDisplay: '0,00',
+        }));
+        return;
+      }
+      const number = parseFloat(cleaned) / 100;
+      setFormData((prev) => ({
+        ...prev,
+        valor: number,
+        valorDisplay: number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -562,13 +583,12 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
             <div className="lancamentos-modal-group">
               <label>Valor (R$) *</label>
               <input
-                type="number"
+                type="text"
                 name="valor"
-                min="0"
-                step="0.01"
-                value={formData.valor}
+                value={formData.valorDisplay}
                 onChange={handleChange}
                 required
+                placeholder="0,00"
               />
             </div>
           </div>

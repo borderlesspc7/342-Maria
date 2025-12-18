@@ -418,6 +418,7 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
     tipoServico: (boletim?.tipoServico || "Instalação") as TipoServico,
     status: (boletim?.status || "Pendente") as BoletimStatus,
     valor: boletim?.valor || 0,
+    valorDisplay: (boletim?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     dataEmissao: boletim?.dataEmissao
       ? new Date(boletim.dataEmissao).toISOString().split("T")[0]
       : "",
@@ -607,18 +608,28 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
             <div className="form-group">
               <label>Valor (R$) *</label>
               <input
-                type="number"
+                type="text"
                 required
-                step="0.01"
-                min="0"
-                value={formData.valor}
-                onChange={(e) =>
+                value={formData.valorDisplay}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const cleaned = value.replace(/\D/g, '');
+                  if (!cleaned) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      valor: 0,
+                      valorDisplay: '0,00',
+                    }));
+                    return;
+                  }
+                  const number = parseFloat(cleaned) / 100;
                   setFormData((prev) => ({
                     ...prev,
-                    valor: Number(e.target.value),
-                  }))
-                }
-                placeholder="0.00"
+                    valor: number,
+                    valorDisplay: number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                  }));
+                }}
+                placeholder="0,00"
               />
             </div>
           </div>

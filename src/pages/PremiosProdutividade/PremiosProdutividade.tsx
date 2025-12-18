@@ -21,6 +21,7 @@ import type {
   PremioStats,
 } from "../../types/premioProdutividade";
 import { mockColaboradores } from "../../types/premioProdutividade";
+import { maskCPF, unmaskCPF } from "../../utils/masks";
 import "./PremiosProdutividade.css";
 
 const generateTempId = () => {
@@ -626,10 +627,11 @@ const PremioModal: React.FC<PremioModalProps> = ({
   const [formData, setFormData] = useState({
     colaboradorId: premio?.colaboradorId || defaultColaborador?.id || "",
     colaboradorNome: premio?.colaboradorNome || defaultColaborador?.nome || "",
-    cpf: premio?.cpf || defaultColaborador?.cpf || "",
+    cpf: maskCPF(premio?.cpf || defaultColaborador?.cpf || ""),
     cargo: premio?.cargo || defaultColaborador?.cargo || "",
     setor: premio?.setor || defaultColaborador?.setor || "",
     valor: premio?.valor || 0,
+    valorDisplay: (premio?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     dataPremio: premio?.dataPremio
       ? new Date(premio.dataPremio).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
@@ -651,7 +653,7 @@ const PremioModal: React.FC<PremioModalProps> = ({
         ...prev,
         colaboradorId: colaborador.id,
         colaboradorNome: colaborador.nome,
-        cpf: colaborador.cpf,
+        cpf: maskCPF(colaborador.cpf),
         cargo: colaborador.cargo,
         setor: colaborador.setor,
       }));
@@ -664,10 +666,35 @@ const PremioModal: React.FC<PremioModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "valor" ? Number(value) : value,
-    }));
+    
+    if (name === "cpf") {
+      setFormData((prev) => ({
+        ...prev,
+        cpf: maskCPF(value),
+      }));
+    } else if (name === "valor") {
+      // Remove tudo que não é dígito
+      const cleaned = value.replace(/\D/g, '');
+      if (!cleaned) {
+        setFormData((prev) => ({
+          ...prev,
+          valor: 0,
+          valorDisplay: '0,00',
+        }));
+        return;
+      }
+      const number = parseFloat(cleaned) / 100;
+      setFormData((prev) => ({
+        ...prev,
+        valor: number,
+        valorDisplay: number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -678,7 +705,7 @@ const PremioModal: React.FC<PremioModalProps> = ({
       const payload: PremioFormData = {
         colaboradorId: formData.colaboradorId || generateTempId(),
         colaboradorNome: formData.colaboradorNome,
-        cpf: formData.cpf,
+        cpf: unmaskCPF(formData.cpf),
         cargo: formData.cargo,
         setor: formData.setor,
         valor: formData.valor,
@@ -780,13 +807,12 @@ const PremioModal: React.FC<PremioModalProps> = ({
               <div className="premios-modal-group">
                 <label>Valor (R$) *</label>
                 <input
-                  type="number"
+                  type="text"
                   name="valor"
-                  min="0"
-                  step="0.01"
-                  value={formData.valor}
+                  value={formData.valorDisplay}
                   onChange={handleChange}
                   required
+                  placeholder="0,00"
                 />
               </div>
               <div className="premios-modal-group">
