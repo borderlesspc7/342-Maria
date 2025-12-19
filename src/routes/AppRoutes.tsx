@@ -3,6 +3,7 @@ import { paths } from "./paths";
 import { ProtectedRoutes } from "./ProtectedRoutes";
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
+import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import PremiosProdutividade from "../pages/PremiosProdutividade/PremiosProdutividade";
 import BoletinsMedicao from "../pages/BoletinsMedicao/BoletinsMedicao";
@@ -17,6 +18,7 @@ export function AppRoutes() {
         <Route path={paths.home} element={<Dashboard />} />
         <Route path={paths.login} element={<Login />} />
         <Route path={paths.register} element={<Register />} />
+        <Route path={paths.forgotPassword} element={<ForgotPassword />} />
         <Route
           path={paths.dashboard}
           element={

@@ -139,12 +139,23 @@ const Login: React.FC = () => {
               <span className="login-checkmark"></span>
               Lembrar-me
             </label>
-            <a href="#" className="login-forgot-password">
+            <a
+              href="#"
+              className="login-forgot-password"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/forgot-password");
+              }}
+            >
               Esqueceu a senha?
             </a>
           </div>
 
-          <button type="submit" className="login-btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="login-btn-primary"
+            disabled={loading}
+          >
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
