@@ -6,6 +6,7 @@ import {
   HiFolder,
   HiBookOpen,
   HiChartBar,
+  HiCurrencyDollar,
   HiChevronLeft,
   HiChevronRight,
 } from "react-icons/hi";
@@ -42,6 +43,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       path: "/caderno-virtual",
       icon: HiBookOpen,
       label: "Caderno Virtual",
+    },
+    {
+      path: "/financeiro",
+      icon: HiCurrencyDollar,
+      label: "Gestão Financeira",
     },
     {
       path: "/relatorios",

@@ -10,4 +10,5 @@ export const paths = {
   cadernoVirtual: "/caderno-virtual",
   lancamentosDiarios: "/lancamentos-diarios",
   relatorios: "/relatorios",
+  financeiro: "/financeiro",
 };
