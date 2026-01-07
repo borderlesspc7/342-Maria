@@ -255,6 +255,78 @@
   margin-top: 4px;
 }
 
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.notification-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #a0aec0;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover .notification-delete {
+  opacity: 1;
+}
+
+.notification-delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.notification-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #a0aec0;
+}
+
+.notification-empty svg {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.notification-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.priority-urgent {
+  border-left: 3px solid #ef4444;
+}
+
+.priority-high {
+  border-left: 3px solid #f59e0b;
+}
+
+.priority-medium {
+  border-left: 3px solid #3b82f6;
+}
+
+.priority-low {
+  border-left: 3px solid #10b981;
+}
+
 .dropdown-footer {
   padding: 12px 20px;
   border-top: 1px solid #e2e8f0;

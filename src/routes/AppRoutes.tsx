@@ -11,6 +11,7 @@ import Documentacoes from "../pages/Documentacoes/Documentacoes";
 import CadernoVirtual from "../pages/CadernoVirtual/CadernoVirtual";
 import Relatorios from "../pages/Relatorios/Relatorios";
 import Financeiro from "../pages/Financeiro/Financeiro";
+import Notificacoes from "../pages/Notificacoes/Notificacoes";
 
 export function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ export function AppRoutes() {
         <Route path={paths.cadernoVirtual} element={<CadernoVirtual />} />
         <Route path={paths.relatorios} element={<Relatorios />} />
         <Route path={paths.financeiro} element={<Financeiro />} />
+        <Route path={paths.notificacoes} element={<Notificacoes />} />
       </Routes>
     </BrowserRouter>
   );

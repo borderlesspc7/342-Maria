@@ -7,6 +7,7 @@ import {
   HiBookOpen,
   HiChartBar,
   HiCurrencyDollar,
+  HiBell,
   HiChevronLeft,
   HiChevronRight,
 } from "react-icons/hi";
@@ -23,6 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       path: "/dashboard",
       icon: HiHome,
       label: "Dashboard",
+    },
+    {
+      path: "/notificacoes",
+      icon: HiBell,
+      label: "Notificações",
     },
     {
       path: "/premios-produtividade",

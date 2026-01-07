@@ -11,4 +11,5 @@ export const paths = {
   lancamentosDiarios: "/lancamentos-diarios",
   relatorios: "/relatorios",
   financeiro: "/financeiro",
+  notificacoes: "/notificacoes",
 };

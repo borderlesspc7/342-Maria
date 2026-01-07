@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiBell, HiUser, HiLogout, HiCog, HiMenu } from 'react-icons/hi';
+import { HiBell, HiUser, HiLogout, HiCog, HiMenu, HiX, HiExclamation, HiInformationCircle } from 'react-icons/hi';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotificationContext } from '../../contexts/NotificationContext';
 import './Header.css';
 
 interface HeaderProps {
@@ -14,6 +15,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  const { 
+    notificacoes, 
+    naoLidas, 
+    marcarComoLida, 
+    marcarTodasComoLidas, 
+    deletar 
+  } = useNotificationContext();
+
+  // Mostrar apenas as 5 mais recentes no dropdown
+  const notificacoesRecentes = notificacoes.slice(0, 5);
 
   const handleLogout = async () => {
     try {
@@ -21,6 +33,66 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
       navigate('/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+    }
+  };
+
+  const handleNotificationClick = async (id: string, link?: string) => {
+    await marcarComoLida(id);
+    setShowNotifications(false);
+    if (link) {
+      navigate(link);
+    }
+  };
+
+  const handleMarcarTodasLidas = async () => {
+    await marcarTodasComoLidas();
+  };
+
+  const handleDeletarNotificacao = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await deletar(id);
+  };
+
+  const formatarTempo = (data: Date) => {
+    const agora = new Date();
+    const diff = agora.getTime() - data.getTime();
+    const minutos = Math.floor(diff / 60000);
+    const horas = Math.floor(minutos / 60);
+    const dias = Math.floor(horas / 24);
+
+    if (minutos < 1) return 'Agora';
+    if (minutos < 60) return `Há ${minutos} min`;
+    if (horas < 24) return `Há ${horas} h`;
+    if (dias === 1) return 'Ontem';
+    if (dias < 7) return `Há ${dias} dias`;
+    return data.toLocaleDateString();
+  };
+
+  const getNotificationIcon = (tipo: string) => {
+    switch (tipo) {
+      case 'documento_vencido':
+      case 'documento_vencendo':
+        return '📄';
+      case 'premio_lancado':
+        return '🏆';
+      case 'boletim_pendente':
+      case 'boletim_vencendo':
+        return '📊';
+      default:
+        return '🔔';
+    }
+  };
+
+  const getPriorityClass = (prioridade: string) => {
+    switch (prioridade) {
+      case 'urgente':
+        return 'priority-urgent';
+      case 'alta':
+        return 'priority-high';
+      case 'media':
+        return 'priority-medium';
+      default:
+        return 'priority-low';
     }
   };
 
@@ -42,40 +114,69 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
               aria-label="Notificações"
             >
               <HiBell />
-              <span className="notification-badge">3</span>
+              {naoLidas > 0 && (
+                <span className="notification-badge">
+                  {naoLidas > 99 ? '99+' : naoLidas}
+                </span>
+              )}
             </button>
 
             {showNotifications && (
               <div className="dropdown-menu notifications-menu">
                 <div className="dropdown-header">
                   <h3>Notificações</h3>
-                  <button className="mark-read">Marcar todas como lidas</button>
+                  {naoLidas > 0 && (
+                    <button className="mark-read" onClick={handleMarcarTodasLidas}>
+                      Marcar todas como lidas
+                    </button>
+                  )}
                 </div>
-                <ul className="notification-list">
-                  <li className="notification-item unread">
-                    <div className="notification-content">
-                      <p className="notification-title">Novo boletim de medição</p>
-                      <p className="notification-text">Boletim de outubro foi adicionado</p>
-                      <span className="notification-time">Há 2 horas</span>
-                    </div>
-                  </li>
-                  <li className="notification-item unread">
-                    <div className="notification-content">
-                      <p className="notification-title">Documentação vencendo</p>
-                      <p className="notification-text">3 documentos vencem em 5 dias</p>
-                      <span className="notification-time">Há 5 horas</span>
-                    </div>
-                  </li>
-                  <li className="notification-item unread">
-                    <div className="notification-content">
-                      <p className="notification-title">Relatório disponível</p>
-                      <p className="notification-text">Relatório mensal foi gerado</p>
-                      <span className="notification-time">Ontem</span>
-                    </div>
-                  </li>
-                </ul>
+                
+                {notificacoesRecentes.length === 0 ? (
+                  <div className="notification-empty">
+                    <HiInformationCircle />
+                    <p>Nenhuma notificação</p>
+                  </div>
+                ) : (
+                  <ul className="notification-list">
+                    {notificacoesRecentes.map((notificacao) => (
+                      <li
+                        key={notificacao.id}
+                        className={`notification-item ${!notificacao.lida ? 'unread' : ''} ${getPriorityClass(notificacao.prioridade)}`}
+                        onClick={() => handleNotificationClick(notificacao.id, notificacao.link)}
+                      >
+                        <div className="notification-icon">
+                          {getNotificationIcon(notificacao.tipo)}
+                        </div>
+                        <div className="notification-content">
+                          <p className="notification-title">{notificacao.titulo}</p>
+                          <p className="notification-text">{notificacao.mensagem}</p>
+                          <span className="notification-time">
+                            {formatarTempo(notificacao.criadoEm)}
+                          </span>
+                        </div>
+                        <button
+                          className="notification-delete"
+                          onClick={(e) => handleDeletarNotificacao(e, notificacao.id)}
+                          aria-label="Deletar notificação"
+                        >
+                          <HiX />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                
                 <div className="dropdown-footer">
-                  <button className="view-all">Ver todas as notificações</button>
+                  <button 
+                    className="view-all" 
+                    onClick={() => {
+                      navigate('/notificacoes');
+                      setShowNotifications(false);
+                    }}
+                  >
+                    Ver todas as notificações
+                  </button>
                 </div>
               </div>
             )}
