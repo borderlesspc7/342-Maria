@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HiBell, HiUser, HiLogout, HiCog, HiMenu, HiX, HiExclamation, HiInformationCircle } from 'react-icons/hi';
-import { useAuth } from '../../hooks/useAuth';
-import { useNotificationContext } from '../../contexts/NotificationContext';
-import './Header.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  HiBell,
+  HiUser,
+  HiLogout,
+  HiCog,
+  HiMenu,
+  HiX,
+  HiInformationCircle,
+} from "react-icons/hi";
+import { useAuth } from "../../hooks/useAuth";
+import { useNotificationContext } from "../../contexts/NotificationContext";
+import "./Header.css";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -15,13 +23,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  
-  const { 
-    notificacoes, 
-    naoLidas, 
-    marcarComoLida, 
-    marcarTodasComoLidas, 
-    deletar 
+
+  const {
+    notificacoes,
+    naoLidas,
+    marcarComoLida,
+    marcarTodasComoLidas,
+    deletar,
   } = useNotificationContext();
 
   // Mostrar apenas as 5 mais recentes no dropdown
@@ -30,9 +38,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
   const handleLogout = async () => {
     try {
       await logOut();
-      navigate('/login');
+      navigate("/login");
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error("Erro ao fazer logout:", error);
     }
   };
 
@@ -60,46 +68,50 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
     const horas = Math.floor(minutos / 60);
     const dias = Math.floor(horas / 24);
 
-    if (minutos < 1) return 'Agora';
+    if (minutos < 1) return "Agora";
     if (minutos < 60) return `Há ${minutos} min`;
     if (horas < 24) return `Há ${horas} h`;
-    if (dias === 1) return 'Ontem';
+    if (dias === 1) return "Ontem";
     if (dias < 7) return `Há ${dias} dias`;
     return data.toLocaleDateString();
   };
 
   const getNotificationIcon = (tipo: string) => {
     switch (tipo) {
-      case 'documento_vencido':
-      case 'documento_vencendo':
-        return '📄';
-      case 'premio_lancado':
-        return '🏆';
-      case 'boletim_pendente':
-      case 'boletim_vencendo':
-        return '📊';
+      case "documento_vencido":
+      case "documento_vencendo":
+        return "📄";
+      case "premio_lancado":
+        return "🏆";
+      case "boletim_pendente":
+      case "boletim_vencendo":
+        return "📊";
       default:
-        return '🔔';
+        return "🔔";
     }
   };
 
   const getPriorityClass = (prioridade: string) => {
     switch (prioridade) {
-      case 'urgente':
-        return 'priority-urgent';
-      case 'alta':
-        return 'priority-high';
-      case 'media':
-        return 'priority-medium';
+      case "urgente":
+        return "priority-urgent";
+      case "alta":
+        return "priority-high";
+      case "media":
+        return "priority-medium";
       default:
-        return 'priority-low';
+        return "priority-low";
     }
   };
 
   return (
     <header className={`header ${collapsed ? "sidebar-collapsed" : ""}`}>
       <div className="header-left">
-        <button className="menu-toggle" onClick={onMenuClick} aria-label="Toggle menu">
+        <button
+          className="menu-toggle"
+          onClick={onMenuClick}
+          aria-label="Toggle menu"
+        >
           <HiMenu />
         </button>
         <h1 className="header-title">Sistema de Gestão RH</h1>
@@ -116,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
               <HiBell />
               {naoLidas > 0 && (
                 <span className="notification-badge">
-                  {naoLidas > 99 ? '99+' : naoLidas}
+                  {naoLidas > 99 ? "99+" : naoLidas}
                 </span>
               )}
             </button>
@@ -126,12 +138,15 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                 <div className="dropdown-header">
                   <h3>Notificações</h3>
                   {naoLidas > 0 && (
-                    <button className="mark-read" onClick={handleMarcarTodasLidas}>
+                    <button
+                      className="mark-read"
+                      onClick={handleMarcarTodasLidas}
+                    >
                       Marcar todas como lidas
                     </button>
                   )}
                 </div>
-                
+
                 {notificacoesRecentes.length === 0 ? (
                   <div className="notification-empty">
                     <HiInformationCircle />
@@ -142,22 +157,35 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                     {notificacoesRecentes.map((notificacao) => (
                       <li
                         key={notificacao.id}
-                        className={`notification-item ${!notificacao.lida ? 'unread' : ''} ${getPriorityClass(notificacao.prioridade)}`}
-                        onClick={() => handleNotificationClick(notificacao.id, notificacao.link)}
+                        className={`notification-item ${
+                          !notificacao.lida ? "unread" : ""
+                        } ${getPriorityClass(notificacao.prioridade)}`}
+                        onClick={() =>
+                          handleNotificationClick(
+                            notificacao.id,
+                            notificacao.link
+                          )
+                        }
                       >
                         <div className="notification-icon">
                           {getNotificationIcon(notificacao.tipo)}
                         </div>
                         <div className="notification-content">
-                          <p className="notification-title">{notificacao.titulo}</p>
-                          <p className="notification-text">{notificacao.mensagem}</p>
+                          <p className="notification-title">
+                            {notificacao.titulo}
+                          </p>
+                          <p className="notification-text">
+                            {notificacao.mensagem}
+                          </p>
                           <span className="notification-time">
                             {formatarTempo(notificacao.criadoEm)}
                           </span>
                         </div>
                         <button
                           className="notification-delete"
-                          onClick={(e) => handleDeletarNotificacao(e, notificacao.id)}
+                          onClick={(e) =>
+                            handleDeletarNotificacao(e, notificacao.id)
+                          }
                           aria-label="Deletar notificação"
                         >
                           <HiX />
@@ -166,12 +194,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                     ))}
                   </ul>
                 )}
-                
+
                 <div className="dropdown-footer">
-                  <button 
-                    className="view-all" 
+                  <button
+                    className="view-all"
                     onClick={() => {
-                      navigate('/notificacoes');
+                      navigate("/notificacoes");
                       setShowNotifications(false);
                     }}
                   >
@@ -192,8 +220,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                 <HiUser />
               </div>
               <div className="user-info">
-                <span className="user-name">{user?.name || 'Usuário'}</span>
-                <span className="user-role">{user?.role === 'admin' ? 'Administrador' : 'Colaborador'}</span>
+                <span className="user-name">{user?.name || "Usuário"}</span>
+                <span className="user-role">
+                  {user?.role === "admin" ? "Administrador" : "Colaborador"}
+                </span>
               </div>
             </button>
 
@@ -204,19 +234,27 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                     <HiUser />
                   </div>
                   <div className="user-details">
-                    <p className="user-name-large">{user?.name || 'Usuário'}</p>
-                    <p className="user-email">{user?.email || 'email@empresa.com'}</p>
+                    <p className="user-name-large">{user?.name || "Usuário"}</p>
+                    <p className="user-email">
+                      {user?.email || "email@empresa.com"}
+                    </p>
                   </div>
                 </div>
                 <ul className="menu-list">
                   <li>
-                    <button className="menu-item" onClick={() => navigate('/perfil')}>
+                    <button
+                      className="menu-item"
+                      onClick={() => navigate("/perfil")}
+                    >
                       <HiUser />
                       <span>Meu Perfil</span>
                     </button>
                   </li>
                   <li>
-                    <button className="menu-item" onClick={() => navigate('/configuracoes')}>
+                    <button
+                      className="menu-item"
+                      onClick={() => navigate("/configuracoes")}
+                    >
                       <HiCog />
                       <span>Configurações</span>
                     </button>
@@ -249,4 +287,3 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
 };
 
 export default Header;
-
