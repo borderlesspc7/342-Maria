@@ -60,6 +60,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       icon: HiChartBar,
       label: "Relatórios",
     },
+    {
+      path: "/documentos-financeiros",
+      icon: HiDocumentText,
+      label: "Documentos Financeiros",
+    },
   ];
 
   return (
