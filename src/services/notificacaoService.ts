@@ -23,8 +23,6 @@ import type {
   NotificacaoStats,
   ConfiguracaoNotificacao,
   ConfiguracaoNotificacaoFormData,
-  TipoNotificacao,
-  PrioridadeNotificacao,
 } from "../types/notificacao";
 
 const NOTIFICACOES_COLLECTION = "notificacoes";
@@ -33,7 +31,7 @@ const CONFIGURACOES_COLLECTION = "configuracoes_notificacoes";
 // Converter Timestamp do Firebase para Date
 function convertTimestampToDate(data: any): any {
   if (!data) return data;
-  
+
   const converted = { ...data };
   Object.keys(converted).forEach((key) => {
     if (converted[key] instanceof Timestamp) {
@@ -42,18 +40,19 @@ function convertTimestampToDate(data: any): any {
       // Converter datas dentro de metadata
       Object.keys(converted[key].metadata).forEach((metaKey) => {
         if (converted[key].metadata[metaKey] instanceof Timestamp) {
-          converted[key].metadata[metaKey] = converted[key].metadata[metaKey].toDate();
+          converted[key].metadata[metaKey] =
+            converted[key].metadata[metaKey].toDate();
         }
       });
     }
   });
-  
+
   return converted;
 }
 
 export const notificacaoService = {
   // ============== CRUD de Notificações ==============
-  
+
   async criar(data: NotificacaoFormData): Promise<Notificacao> {
     try {
       const notificacaoData = {
@@ -83,7 +82,7 @@ export const notificacaoService = {
   async criarEmLote(notificacoes: NotificacaoFormData[]): Promise<void> {
     try {
       const batch = writeBatch(db);
-      
+
       notificacoes.forEach((notificacao) => {
         const docRef = doc(collection(db, NOTIFICACOES_COLLECTION));
         batch.set(docRef, {
@@ -426,7 +425,8 @@ export const notificacaoService = {
     await this.criar({
       userId,
       tipo: "documento_vencendo",
-      prioridade: diasRestantes <= 3 ? "urgente" : diasRestantes <= 7 ? "alta" : "media",
+      prioridade:
+        diasRestantes <= 3 ? "urgente" : diasRestantes <= 7 ? "alta" : "media",
       titulo: `Documento prestes a vencer`,
       mensagem: `O documento ${tipoDocumento} de ${colaboradorNome} vence em ${diasRestantes} dia(s).`,
       link: `/documentacoes`,
@@ -475,7 +475,9 @@ export const notificacaoService = {
       tipo: "premio_lancado",
       prioridade: "media",
       titulo: `Novo prêmio lançado`,
-      mensagem: `Prêmio de R$ ${valor.toFixed(2)} lançado para ${colaboradorNome}: ${motivo}`,
+      mensagem: `Prêmio de R$ ${valor.toFixed(
+        2
+      )} lançado para ${colaboradorNome}: ${motivo}`,
       link: `/premios-produtividade`,
       metadata: {
         premioId,
@@ -498,7 +500,9 @@ export const notificacaoService = {
       tipo: "boletim_pendente",
       prioridade: "alta",
       titulo: `Boletim pendente`,
-      mensagem: `Boletim ${numero} do cliente ${cliente} está pendente (R$ ${valor.toFixed(2)}).`,
+      mensagem: `Boletim ${numero} do cliente ${cliente} está pendente (R$ ${valor.toFixed(
+        2
+      )}).`,
       link: `/boletins-medicao`,
       metadata: {
         boletimId,
@@ -537,4 +541,3 @@ export const notificacaoService = {
     });
   },
 };
-

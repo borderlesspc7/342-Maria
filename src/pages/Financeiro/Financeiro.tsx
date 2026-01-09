@@ -12,7 +12,6 @@ import {
   HiPencil,
   HiTrash,
   HiX,
-  HiCalendar,
   HiUser,
   HiDownload,
   HiDocumentText,
