@@ -6,26 +6,35 @@ import "./Login.css";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
   const [rememberMe, setRememberMe] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
-  const { login, loading } = useAuth();
+
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: typeof errors = {};
 
     if (!formData.email) {
       newErrors.email = "E-mail é obrigatório";
@@ -46,7 +55,7 @@ const Login: React.FC = () => {
   const clearInput = () => {
     setFormData({ email: "", password: "" });
     setRememberMe(false);
-    setErrors({ email: undefined, password: undefined });
+    setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -54,19 +63,23 @@ const Login: React.FC = () => {
 
     if (!validateForm()) return;
 
+    setLoading(true);
+    setErrors({});
+
     try {
       await login({
         email: formData.email,
         password: formData.password,
       });
+
       navigate("/dashboard");
       clearInput();
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
+    } catch (err) {
       setErrors({
-        email: "Erro ao fazer login",
-        password: "Erro ao fazer login",
+        general: "E-mail ou senha inválidos. Tente novamente.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,6 +102,10 @@ const Login: React.FC = () => {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
+          {errors.general && (
+            <span className="login-error-message">{errors.general}</span>
+          )}
+
           <div className="login-form-group">
             <label htmlFor="email">E-mail</label>
             <div className="login-input-wrapper">
@@ -97,7 +114,6 @@ const Login: React.FC = () => {
                 type="email"
                 id="email"
                 name="email"
-                required
                 placeholder="seu.email@empresa.com"
                 value={formData.email}
                 onChange={handleChange}
@@ -117,7 +133,6 @@ const Login: React.FC = () => {
                 type="password"
                 id="password"
                 name="password"
-                required
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
@@ -139,6 +154,7 @@ const Login: React.FC = () => {
               <span className="login-checkmark"></span>
               Lembrar-me
             </label>
+
             <a
               href="#"
               className="login-forgot-password"
