@@ -13,6 +13,7 @@ import Relatorios from "../pages/Relatorios/Relatorios";
 import Financeiro from "../pages/Financeiro/Financeiro";
 import Notificacoes from "../pages/Notificacoes/Notificacoes";
 import DocumentosFinanceiros from "../pages/DocumentosFinanceiros/DocumentosFinanceiros";
+import Perfil from "../pages/Perfil/Perfil";
 
 
 export function AppRoutes() {
@@ -41,6 +42,7 @@ export function AppRoutes() {
         <Route path={paths.relatorios} element={<Relatorios />} />
         <Route path={paths.financeiro} element={<Financeiro />} />
         <Route path={paths.notificacoes} element={<Notificacoes />} />
+        <Route path={paths.perfil} element={<Perfil />} />
         <Route path={paths.documentosFinanceiros} element={<DocumentosFinanceiros />} />
       </Routes>
     </BrowserRouter>

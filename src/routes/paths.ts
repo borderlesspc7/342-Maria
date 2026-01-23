@@ -13,4 +13,5 @@ export const paths = {
   financeiro: "/financeiro",
   notificacoes: "/notificacoes",
   documentosFinanceiros: "/documentos-financeiros",
+  perfil: "/perfil",
 };
