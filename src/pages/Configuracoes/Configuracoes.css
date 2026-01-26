@@ -1,0 +1,118 @@
+.settings-container {
+    padding: 32px;
+    position: relative;
+  }
+  
+  .settings-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 32px;
+  }
+  
+  /* Card de seção */
+  .settings-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 32px 40px;
+    max-width: 520px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    margin-bottom: 24px;
+    animation: settingsFadeIn 0.5s ease-out;
+  }
+  
+  /* Animação igual ao Perfil */
+  @keyframes settingsFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Título da seção */
+  .settings-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  
+  /* Itens */
+  .settings-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .settings-item + .settings-item {
+    margin-top: 20px;
+  }
+  
+  .settings-item .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .settings-item .value {
+    font-size: 15px;
+    color: #4a5568;
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  
+  /* Ações (botões) */
+  .settings-item.action {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .settings-button {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .settings-button.secondary {
+    background: #edf2f7;
+    color: #4a5568;
+  }
+  
+  .settings-button.danger {
+    background: #e53e3e;
+    color: #ffffff;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 640px) {
+    .settings-container {
+      padding: 24px 16px;
+    }
+  
+    .settings-title {
+      font-size: 28px;
+    }
+  
+    .settings-card {
+      padding: 28px 24px;
+    }
+  }
+  

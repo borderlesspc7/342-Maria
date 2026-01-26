@@ -157,9 +157,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                     {notificacoesRecentes.map((notificacao) => (
                       <li
                         key={notificacao.id}
-                        className={`notification-item ${
-                          !notificacao.lida ? "unread" : ""
-                        } ${getPriorityClass(notificacao.prioridade)}`}
+                        className={`notification-item ${!notificacao.lida ? "unread" : ""
+                          } ${getPriorityClass(notificacao.prioridade)}`}
                         onClick={() =>
                           handleNotificationClick(
                             notificacao.id,
@@ -253,7 +252,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
                   <li>
                     <button
                       className="menu-item"
-                      onClick={() => navigate("/configuracoes")}
+                      onClick={() => navigate("/Configuracoes")}
                     >
                       <HiCog />
                       <span>Configurações</span>
