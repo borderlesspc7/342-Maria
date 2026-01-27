@@ -85,6 +85,7 @@ export const authService = {
       role: credentials.role ?? "user",
       createdAt: new Date(),
       updatedAt: new Date(),
+      password: credentials.password,
     };
 
     saveUsers([...users, newUser]);
@@ -112,5 +113,37 @@ export const authService = {
     if (!/\S+@\S+\.\S+/.test(email)) {
       throw new Error("E-mail inválido");
     }
+  },
+
+  // ✅ NOVO MÉTODO: alterar senha
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    const sessionUser = loadSession();
+    if (!sessionUser) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    if (!currentPassword || !newPassword) {
+      throw new Error("Todos os campos são obrigatórios");
+    }
+
+    // validar senha atual
+    if (sessionUser.password !== currentPassword) {
+      throw new Error("Senha atual incorreta");
+    }
+
+    if (newPassword.length < 6) {
+      throw new Error("A nova senha deve ter no mínimo 6 caracteres");
+    }
+
+    // atualizar senha
+    const users = loadUsers();
+    const updatedUsers = users.map((u) =>
+      u.uid === sessionUser.uid ? { ...u, password: newPassword, updatedAt: new Date() } : u
+    );
+
+    saveUsers(updatedUsers);
+
+    // atualizar sessão atual
+    saveSession({ ...sessionUser, password: newPassword, updatedAt: new Date() });
   },
 };

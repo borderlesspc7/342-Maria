@@ -1,18 +1,20 @@
 import "./Configuracoes.css";
 import { useAuth } from "../../hooks/useAuth";
 import Layout from "../../components/Layout/Layout";
-import { HiUser, HiMail, HiLogout, HiLockClosed, HiCog } from "react-icons/hi";
+import { HiUser, HiMail, HiLogout, HiLockClosed } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-export default function Configuracoes() {
+import { useState } from "react";
+import { ChangePasswordModal } from "../../components/ChangePasswordModal";
 
+export default function Configuracoes() {
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
-  
+
   function handleLogout() {
     logOut();
     navigate("/login");
   }
-  
 
   return (
     <Layout>
@@ -49,7 +51,6 @@ export default function Configuracoes() {
           </div>
         </div>
 
-
         {/* Segurança */}
         <div className="settings-card">
           <h3 className="settings-section-title">
@@ -58,8 +59,11 @@ export default function Configuracoes() {
 
           <div className="settings-item action">
             <span className="label">Alterar senha</span>
-            <button className="settings-button secondary">
-              Em breve
+            <button
+              className="settings-button secondary"
+              onClick={() => setIsChangePasswordOpen(true)}
+            >
+              Alterar
             </button>
           </div>
 
@@ -73,19 +77,13 @@ export default function Configuracoes() {
             </button>
           </div>
         </div>
-
-        {/* Preferências */}
-        <div className="settings-card">
-          <h3 className="settings-section-title">
-            <HiCog /> Preferências
-          </h3>
-
-          <div className="settings-item">
-            <span className="label">Tema</span>
-            <span className="value">Sistema Dark</span>
-          </div>
-        </div>
       </div>
+
+      {/* Modal de Alterar Senha */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
     </Layout>
   );
 }
