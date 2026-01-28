@@ -8,6 +8,11 @@ import type {
 const USERS_KEY = "@app:users";
 const SESSION_KEY = "@app:session";
 
+/* 🔐 Regra única de senha */
+function isValidPassword(password: string): boolean {
+  return /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/.test(password);
+}
+
 function loadUsers(): User[] {
   const data = localStorage.getItem(USERS_KEY);
   if (!data) return [];
@@ -53,8 +58,8 @@ export const authService = {
       throw new Error("Usuário não encontrado");
     }
 
-    if (!credentials.password || credentials.password.length < 6) {
-      throw new Error("Senha inválida");
+    if (user.password !== credentials.password) {
+      throw new Error("Senha incorreta");
     }
 
     const updatedUser: User = {
@@ -71,6 +76,12 @@ export const authService = {
 
     if (credentials.password !== credentials.confirmPassword) {
       throw new Error("As senhas não conferem");
+    }
+
+    if (!isValidPassword(credentials.password)) {
+      throw new Error(
+        "A senha deve ter no mínimo 6 caracteres, com letra maiúscula e minúscula"
+      );
     }
 
     const emailExists = users.some((u) => u.email === credentials.email);
@@ -101,49 +112,41 @@ export const authService = {
   observeAuthState(callback: (user: User | null) => void) {
     const user = loadSession();
     callback(user);
-
     return () => {};
   },
 
-  async resetPassword(email: string): Promise<void> {
-    if (!email) {
-      throw new Error("Email é obrigatório");
-    }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      throw new Error("E-mail inválido");
-    }
-  },
-
-  // ✅ NOVO MÉTODO: alterar senha
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
     const sessionUser = loadSession();
     if (!sessionUser) {
       throw new Error("Usuário não autenticado");
     }
 
-    if (!currentPassword || !newPassword) {
-      throw new Error("Todos os campos são obrigatórios");
-    }
-
-    // validar senha atual
     if (sessionUser.password !== currentPassword) {
       throw new Error("Senha atual incorreta");
     }
 
-    if (newPassword.length < 6) {
-      throw new Error("A nova senha deve ter no mínimo 6 caracteres");
+    if (!isValidPassword(newPassword)) {
+      throw new Error(
+        "A nova senha deve ter no mínimo 6 caracteres, com letra maiúscula e minúscula"
+      );
     }
 
-    // atualizar senha
     const users = loadUsers();
     const updatedUsers = users.map((u) =>
-      u.uid === sessionUser.uid ? { ...u, password: newPassword, updatedAt: new Date() } : u
+      u.uid === sessionUser.uid
+        ? { ...u, password: newPassword, updatedAt: new Date() }
+        : u
     );
 
     saveUsers(updatedUsers);
 
-    // atualizar sessão atual
-    saveSession({ ...sessionUser, password: newPassword, updatedAt: new Date() });
+    saveSession({
+      ...sessionUser,
+      password: newPassword,
+      updatedAt: new Date(),
+    });
   },
 };

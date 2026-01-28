@@ -19,9 +19,6 @@ export function Modal({ isOpen, title, onClose, children }: Props) {
       >
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
-          <button className="modal-close" onClick={onClose}>
-            &times;
-          </button>
         </div>
         <div className="modal-body">{children}</div>
       </div>
