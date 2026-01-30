@@ -5,6 +5,7 @@ import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Colaboradores from "../pages/Colaboradores/Colaboradores";
 import PremiosProdutividade from "../pages/PremiosProdutividade/PremiosProdutividade";
 import BoletinsMedicao from "../pages/BoletinsMedicao/BoletinsMedicao";
 import Documentacoes from "../pages/Documentacoes/Documentacoes";
@@ -20,10 +21,17 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path={paths.home} element={<Dashboard />} />
         <Route path={paths.login} element={<Login />} />
         <Route path={paths.register} element={<Register />} />
         <Route path={paths.forgotPassword} element={<ForgotPassword />} />
+        <Route
+          path={paths.home}
+          element={
+            <ProtectedRoutes>
+              <Dashboard />
+            </ProtectedRoutes>
+          }
+        />
         <Route
           path={paths.dashboard}
           element={
@@ -33,18 +41,93 @@ export function AppRoutes() {
           }
         />
         <Route
-          path={paths.premiosProdutividade}
-          element={<PremiosProdutividade />}
+          path={paths.colaboradores}
+          element={
+            <ProtectedRoutes>
+              <Colaboradores />
+            </ProtectedRoutes>
+          }
         />
-        <Route path={paths.boletinsMedicao} element={<BoletinsMedicao />} />
-        <Route path={paths.documentacoes} element={<Documentacoes />} />
-        <Route path={paths.cadernoVirtual} element={<CadernoVirtual />} />
-        <Route path={paths.relatorios} element={<Relatorios />} />
-        <Route path={paths.financeiro} element={<Financeiro />} />
-        <Route path={paths.notificacoes} element={<Notificacoes />} />
-        <Route path={paths.perfil} element={<Perfil />} />
-        <Route path={paths.configuracoes} element={<Configuracoes />} />
-        <Route path={paths.documentosFinanceiros} element={<DocumentosFinanceiros />} />
+        <Route
+          path={paths.premiosProdutividade}
+          element={
+            <ProtectedRoutes>
+              <PremiosProdutividade />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.boletinsMedicao}
+          element={
+            <ProtectedRoutes>
+              <BoletinsMedicao />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.documentacoes}
+          element={
+            <ProtectedRoutes>
+              <Documentacoes />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.cadernoVirtual}
+          element={
+            <ProtectedRoutes>
+              <CadernoVirtual />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.relatorios}
+          element={
+            <ProtectedRoutes>
+              <Relatorios />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.financeiro}
+          element={
+            <ProtectedRoutes>
+              <Financeiro />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.notificacoes}
+          element={
+            <ProtectedRoutes>
+              <Notificacoes />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.perfil}
+          element={
+            <ProtectedRoutes>
+              <Perfil />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.configuracoes}
+          element={
+            <ProtectedRoutes>
+              <Configuracoes />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.documentosFinanceiros}
+          element={
+            <ProtectedRoutes>
+              <DocumentosFinanceiros />
+            </ProtectedRoutes>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

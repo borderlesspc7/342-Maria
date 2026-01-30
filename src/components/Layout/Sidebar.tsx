@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   HiHome,
+  HiUserGroup,
   HiTrendingUp,
   HiDocumentText,
   HiFolder,
@@ -29,6 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       path: "/notificacoes",
       icon: HiBell,
       label: "Notificações",
+    },
+    {
+      path: "/colaboradores",
+      icon: HiUserGroup,
+      label: "Colaboradores",
     },
     {
       path: "/premios-produtividade",

@@ -13,6 +13,7 @@ import {
   HiTrash,
 } from "react-icons/hi";
 import { premioProdutividadeService } from "../../services/premioProdutividadeService";
+import { colaboradorService } from "../../services/colaboradorService";
 import type {
   PremioProdutividade,
   PremioFilters,
@@ -20,7 +21,7 @@ import type {
   PremioFormData,
   PremioStats,
 } from "../../types/premioProdutividade";
-import { mockColaboradores } from "../../types/premioProdutividade";
+import type { Colaborador } from "../../types/premioProdutividade";
 import { maskCPF, unmaskCPF } from "../../utils/masks";
 import "./PremiosProdutividade.css";
 
@@ -58,10 +59,9 @@ const statusOptions: PremioStatus[] = ["Pendente", "Em revisão", "Aprovado"];
 const PremiosProdutividade: React.FC = () => {
   const hoje = new Date();
   const [premios, setPremios] = useState<PremioProdutividade[]>([]);
+  const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
   const [historico, setHistorico] = useState<PremioProdutividade[]>([]);
-  const [selectedColaborador, setSelectedColaborador] = useState<string>(
-    mockColaboradores[0]?.id ?? ""
-  );
+  const [selectedColaborador, setSelectedColaborador] = useState<string>("");
   const [filters, setFilters] = useState<PremioFilters>({
     mes: hoje.getMonth() + 1,
     ano: hoje.getFullYear(),
@@ -101,6 +101,10 @@ const PremiosProdutividade: React.FC = () => {
   useEffect(() => {
     loadPremios();
   }, [loadPremios]);
+
+  useEffect(() => {
+    colaboradorService.list().then(setColaboradoresList).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (filters.ano && filters.mes) {
@@ -237,7 +241,7 @@ const PremiosProdutividade: React.FC = () => {
     );
 
     return [
-      ...mockColaboradores.map((colab) => ({
+      ...colaboradoresList.map((colab) => ({
         id: colab.id,
         nome: colab.nome,
       })),
@@ -249,7 +253,7 @@ const PremiosProdutividade: React.FC = () => {
       (value, index, self) =>
         index === self.findIndex((option) => option.id === value.id)
     );
-  }, [premios]);
+  }, [premios, colaboradoresList]);
 
   const getStatusClass = (status: PremioStatus) => {
     switch (status) {
@@ -585,6 +589,7 @@ const PremiosProdutividade: React.FC = () => {
         {showModal && (
           <PremioModal
             premio={editingPremio}
+            colaboradoresList={colaboradoresList}
             onClose={() => {
               setShowModal(false);
               setEditingPremio(null);
@@ -592,6 +597,7 @@ const PremiosProdutividade: React.FC = () => {
             onSuccess={async () => {
               setShowModal(false);
               setEditingPremio(null);
+              colaboradorService.list().then(setColaboradoresList).catch(console.error);
               await loadPremios();
               if (selectedColaborador) {
                 await loadHistorico(selectedColaborador);
@@ -609,20 +615,22 @@ const PremiosProdutividade: React.FC = () => {
 
 interface PremioModalProps {
   premio: PremioProdutividade | null;
+  colaboradoresList: Colaborador[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
 const PremioModal: React.FC<PremioModalProps> = ({
   premio,
+  colaboradoresList,
   onClose,
   onSuccess,
 }) => {
   const defaultColaborador = premio
     ? null
-    : mockColaboradores.length > 0
-    ? mockColaboradores[0]
-    : null;
+    : colaboradoresList.length > 0
+      ? colaboradoresList[0]
+      : null;
 
   const [formData, setFormData] = useState({
     colaboradorId: premio?.colaboradorId || defaultColaborador?.id || "",
@@ -645,9 +653,9 @@ const PremioModal: React.FC<PremioModalProps> = ({
   );
   const [saving, setSaving] = useState(false);
 
-  const handleMockChange = (value: string) => {
+  const handleColaboradorChange = (value: string) => {
     setSelectedMock(value);
-    const colaborador = mockColaboradores.find((c) => c.id === value);
+    const colaborador = colaboradoresList.find((c) => c.id === value);
     if (colaborador) {
       setFormData((prev) => ({
         ...prev,
@@ -742,13 +750,13 @@ const PremioModal: React.FC<PremioModalProps> = ({
           <div className="premios-modal-section">
             <div className="premios-modal-row">
               <div className="premios-modal-group">
-                <label>Colaborador (mock)</label>
+                <label>Colaborador</label>
                 <select
                   value={selectedMock}
-                  onChange={(e) => handleMockChange(e.target.value)}
+                  onChange={(e) => handleColaboradorChange(e.target.value)}
                 >
-                  <option value="">Novo colaborador</option>
-                  {mockColaboradores.map((colaborador) => (
+                  <option value="">Novo colaborador (preencher abaixo)</option>
+                  {colaboradoresList.map((colaborador) => (
                     <option key={colaborador.id} value={colaborador.id}>
                       {colaborador.nome} · {colaborador.cargo}
                     </option>

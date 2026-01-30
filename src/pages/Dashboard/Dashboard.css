@@ -70,8 +70,8 @@
 }
 
 .stat-icon-blue {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--theme-primary-bg);
+  color: var(--theme-primary-text);
 }
 
 .stat-icon-orange {
@@ -326,8 +326,8 @@
 }
 
 .notification-action:hover {
-  background: #f1f5f9;
-  color: #667eea;
+  background: #e0e7ff;
+  color: var(--theme-accent);
 }
 
 .notification-message,
@@ -351,8 +351,8 @@
 .alert-category {
   font-size: 12px;
   font-weight: 600;
-  color: #667eea;
-  background: #eef2ff;
+  color: var(--theme-primary-text);
+  background: #e0e7ff;
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -411,11 +411,11 @@
 }
 
 .action-button:hover {
-  background: #edf2f7;
-  border-color: #667eea;
-  color: #667eea;
+  background: #e0e7ff;
+  border-color: var(--theme-accent);
+  color: var(--theme-primary-text);
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 12px var(--theme-primary-shadow);
 }
 
 .action-button svg {

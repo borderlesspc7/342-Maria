@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HiMail, HiLockClosed, HiUser } from "react-icons/hi";
+import { HiMail, HiLockClosed, HiOfficeBuilding } from "react-icons/hi";
 import { useAuth } from "../../hooks/useAuth";
 import "./Login.css";
 
@@ -93,8 +93,8 @@ const Login: React.FC = () => {
       <div className="login-card">
         <div className="login-header">
           <div className="logo-container">
-            <div className="logo-icon">
-              <HiUser />
+            <div className="logo-icon" aria-hidden="true">
+              <HiOfficeBuilding size={40} />
             </div>
           </div>
           <h1>Bem-vindo de volta!</h1>
@@ -106,7 +106,7 @@ const Login: React.FC = () => {
             <span className="login-error-message">{errors.general}</span>
           )}
 
-          <div className="login-form-group">
+          <div className="login-form-group login-form-group-1">
             <label htmlFor="email">E-mail</label>
             <div className="login-input-wrapper">
               <HiMail className="login-input-icon" />
@@ -125,7 +125,7 @@ const Login: React.FC = () => {
             )}
           </div>
 
-          <div className="login-form-group">
+          <div className="login-form-group login-form-group-2">
             <label htmlFor="password">Senha</label>
             <div className="login-input-wrapper">
               <HiLockClosed className="login-input-icon" />
@@ -144,7 +144,7 @@ const Login: React.FC = () => {
             )}
           </div>
 
-          <div className="login-form-options">
+          <div className="login-form-options login-form-group-3">
             <label className="login-checkbox-container">
               <input
                 type="checkbox"
@@ -169,17 +169,17 @@ const Login: React.FC = () => {
 
           <button
             type="submit"
-            className="login-btn-primary"
+            className="login-btn-primary login-form-group-4"
             disabled={loading}
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
-          <div className="login-divider"></div>
+          <div className="login-divider login-form-group-5"></div>
 
           <button
             type="button"
-            className="login-btn-secondary"
+            className="login-btn-secondary login-form-group-6"
             onClick={() => navigate("/register")}
           >
             Criar nova conta

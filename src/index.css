@@ -1,13 +1,23 @@
+/* Tema global: azul/ciano/lilás (igual ao fundo do login) */
 :root {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: #0f172a;
-  background-color: #f8fafc;
+  background-color: #f0f4ff;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Cores do tema (fundo e botões) */
+  --theme-bg-start: #bfdbfe;
+  --theme-bg-mid: #c7d2fe;
+  --theme-bg-end: #a5b4fc;
+  --theme-primary-bg: linear-gradient(135deg, #c7d2fe 0%, #ddd6fe 50%, #bfdbfe 100%);
+  --theme-primary-text: #3730a3;
+  --theme-primary-shadow: rgba(99, 102, 241, 0.25);
+  --theme-accent: #818cf8;
+  --theme-accent-hover: #6366f1;
 }
 
 * {

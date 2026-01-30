@@ -29,20 +29,20 @@
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
+  background: var(--theme-primary-bg);
+  color: var(--theme-primary-text);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px var(--theme-primary-shadow);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 20px var(--theme-primary-shadow);
 }
 
 .btn-primary:disabled {
@@ -96,8 +96,8 @@
 }
 
 .stat-icon-blue {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--theme-primary-bg);
+  color: var(--theme-primary-text);
 }
 
 .stat-icon-purple {
