@@ -1,7 +1,7 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #f8fafc;
+  background: transparent;
 }
 
 .layout-main {
@@ -30,17 +30,35 @@
   width: 100%;
 }
 
-@media (max-width: 768px) {
-  .layout-main {
-    margin-left: 0;
-  }
+/* Overlay quando sidebar aberta no mobile */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+  animation: overlayFadeIn 0.2s ease-out;
+}
 
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .layout-main,
   .layout-main.sidebar-collapsed {
     margin-left: 0;
   }
 
   .layout-content {
-    padding: 20px 16px;
+    margin-top: 56px;
+    padding: 16px 12px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .content-wrapper {
+    max-width: 100%;
+    min-width: 0;
   }
 }
 

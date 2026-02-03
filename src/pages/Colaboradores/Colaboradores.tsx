@@ -8,27 +8,43 @@ import {
 } from "react-icons/hi";
 import { Layout } from "../../components/Layout";
 import { colaboradorService } from "../../services/colaboradorService";
-import type { ColaboradorFormData } from "../../services/colaboradorService";
+import type {
+  ColaboradorFormData,
+  CreateColaboradorResult,
+} from "../../services/colaboradorService";
 import type { Colaborador } from "../../types/premioProdutividade";
 import { maskCPF, unmaskCPF } from "../../utils/masks";
+import { useToast } from "../../contexts/ToastContext";
 import "./Colaboradores.css";
+
+const LIST_LOAD_TIMEOUT_MS = 15000;
 
 const Colaboradores: React.FC = () => {
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingColaborador, setEditingColaborador] =
     useState<Colaborador | null>(null);
 
   const loadColaboradores = useCallback(async () => {
+    setLoadError(false);
+    setLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      setLoading(false);
+      setColaboradores([]);
+      setLoadError(true);
+    }, LIST_LOAD_TIMEOUT_MS);
     try {
-      setLoading(true);
       const data = await colaboradorService.list(search || undefined);
+      window.clearTimeout(timeoutId);
       setColaboradores(data);
     } catch (error) {
+      window.clearTimeout(timeoutId);
       console.error("Erro ao carregar colaboradores:", error);
-      alert("Não foi possível carregar os colaboradores.");
+      setColaboradores([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -92,9 +108,11 @@ const Colaboradores: React.FC = () => {
             <div className="empty-state">
               <HiUserGroup className="empty-icon" />
               <p>
-                {search
-                  ? "Nenhum colaborador encontrado para essa busca."
-                  : "Nenhum colaborador cadastrado. Clique em Novo colaborador para começar."}
+                {loadError
+                  ? "Não foi possível carregar a lista. Verifique sua conexão e tente novamente."
+                  : search
+                    ? "Nenhum colaborador encontrado para essa busca."
+                    : "Nenhum colaborador cadastrado. Clique em Novo colaborador para começar."}
               </p>
             </div>
           ) : (
@@ -177,6 +195,8 @@ const ColaboradorModal: React.FC<ColaboradorModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { showToast } = useToast();
+  const submittedRef = React.useRef(false);
   const [formData, setFormData] = useState({
     nome: colaborador?.nome ?? "",
     cpf: maskCPF(colaborador?.cpf ?? ""),
@@ -228,13 +248,9 @@ const ColaboradorModal: React.FC<ColaboradorModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     setSaving(true);
-    const safetyTimeout = window.setTimeout(() => {
-      setSaving(false);
-      alert(
-        "A operação está demorando. Verifique sua conexão. Se o colaborador foi salvo, ele aparecerá na lista (salvo localmente)."
-      );
-    }, 6000);
     try {
       const data: ColaboradorFormData = {
         nome: formData.nome.trim(),
@@ -248,17 +264,31 @@ const ColaboradorModal: React.FC<ColaboradorModalProps> = ({
       };
       if (colaborador) {
         await colaboradorService.update(colaborador.id, data);
+        showToast("Colaborador atualizado com sucesso!");
+        onSuccess();
       } else {
-        await colaboradorService.create(data);
+        const result: CreateColaboradorResult =
+          await colaboradorService.create(data);
+        if (result.savedLocally) {
+          showToast(
+            "Colaborador salvo localmente. Será sincronizado quando a conexão estiver disponível.",
+            "info"
+          );
+        } else {
+          showToast("Colaborador cadastrado com sucesso!");
+        }
+        onSuccess();
       }
-      window.clearTimeout(safetyTimeout);
-      onSuccess();
     } catch (error) {
       console.error("Erro ao salvar colaborador:", error);
-      alert("Não foi possível salvar o colaborador.");
+      submittedRef.current = false;
+      showToast(
+        "Não foi possível salvar o colaborador. Verifique os dados e tente novamente.",
+        "error"
+      );
     } finally {
-      window.clearTimeout(safetyTimeout);
       setSaving(false);
+      submittedRef.current = false;
     }
   };
 

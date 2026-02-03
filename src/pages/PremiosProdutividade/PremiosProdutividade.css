@@ -1,5 +1,72 @@
+/* Container - fundo alinhado à Dashboard/Boletins */
 .premios-container {
   width: 100%;
+  position: relative;
+  min-height: calc(100vh - 70px);
+}
+
+.premios-container::after {
+  content: "";
+  position: fixed;
+  top: 70px;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  background-image: url("/tela-fundo.png"), url("/login-bg.png"), linear-gradient(
+    160deg,
+    #bae6fd 0%,
+    #7dd3fc 25%,
+    #a5f3fc 50%,
+    #67e8f9 75%,
+    #22d3ee 100%
+  );
+  background-size: cover, cover, 100% 100%;
+  background-position: center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.layout-main.sidebar-collapsed .premios-container::after {
+  left: 80px;
+}
+
+@media (max-width: 768px) {
+  .premios-container::after {
+    left: 0;
+  }
+}
+
+.premios-container::before {
+  content: "";
+  position: fixed;
+  top: 70px;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
+.layout-main.sidebar-collapsed .premios-container::before {
+  left: 80px;
+}
+
+@media (max-width: 768px) {
+  .premios-container::before {
+    left: 0;
+  }
+}
+
+.premios-container > * {
+  position: relative;
+  z-index: 1;
 }
 
 .premios-header {
@@ -70,45 +137,92 @@
 .premios-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 32px;
 }
 
 .premios-stat-card {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 24px;
   display: flex;
   gap: 16px;
   align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: premiosFadeInUp 0.6s ease-out backwards;
+}
+
+.premios-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.premios-stat-card:nth-child(2) { animation-delay: 0.2s; }
+.premios-stat-card:nth-child(3) { animation-delay: 0.3s; }
+.premios-stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+.premios-stat-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+@keyframes premiosFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .premios-stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 22px;
+  font-size: 24px;
+  flex-shrink: 0;
+  background: #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.premios-stat-icon.verde {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+.premios-stat-icon svg {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.premios-stat-icon.amarelo {
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
-}
-
-.premios-stat-icon.roxo {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-}
-
+.premios-stat-icon.verde,
+.premios-stat-icon.amarelo,
+.premios-stat-icon.roxo,
 .premios-stat-icon.azul {
-  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+  color: #475569;
+}
+
+.premios-stat-icon.verde svg,
+.premios-stat-icon.amarelo svg,
+.premios-stat-icon.roxo svg,
+.premios-stat-icon.azul svg {
+  color: #475569;
+}
+
+.premios-stat-card:hover .premios-stat-icon.verde svg,
+.premios-stat-card:hover .premios-stat-icon.amarelo svg,
+.premios-stat-card:hover .premios-stat-icon.roxo svg,
+.premios-stat-card:hover .premios-stat-icon.azul svg {
+  color: #475569;
+}
+
+.premios-stat-card:hover .premios-stat-icon {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
 }
 
 .premios-stat-card p {
@@ -123,11 +237,14 @@
 }
 
 .premios-filtros {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 20px;
   margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: premiosFadeInUp 0.5s ease-out 0.2s backwards;
 }
 
 .premios-filtros-header {
@@ -206,14 +323,20 @@
 }
 
 .premios-table-wrapper {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: premiosFadeInUp 0.5s ease-out 0.25s backwards;
 }
 
 .premios-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -303,10 +426,13 @@
 }
 
 .premios-historico {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: premiosFadeInUp 0.5s ease-out 0.3s backwards;
 }
 
 .premios-historico h3 {
@@ -441,7 +567,7 @@
 .premios-modal-group select:focus,
 .premios-modal-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
@@ -470,6 +596,18 @@
 @media (max-width: 1024px) {
   .premios-content {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .premios-table {
+    font-size: 12px;
+    min-width: 660px;
+  }
+
+  .premios-table th,
+  .premios-table td {
+    padding: 10px 8px;
   }
 }
 

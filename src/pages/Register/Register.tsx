@@ -113,7 +113,7 @@ const Register: React.FC = () => {
         <div className="register-header">
           <div className="logo-container">
             <div className="logo-icon">
-              <HiUser />
+              <HiUser size={48} />
             </div>
           </div>
           <h1>Criar Nova Conta</h1>

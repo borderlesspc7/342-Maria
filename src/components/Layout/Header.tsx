@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { paths } from "../../routes/paths";
 import {
   HiBell,
   HiUser,
@@ -8,6 +9,9 @@ import {
   HiMenu,
   HiX,
   HiInformationCircle,
+  HiDocumentText,
+  HiStar,
+  HiChartBar,
 } from "react-icons/hi";
 import { useAuth } from "../../hooks/useAuth";
 import { useNotificationContext } from "../../contexts/NotificationContext";
@@ -80,14 +84,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
     switch (tipo) {
       case "documento_vencido":
       case "documento_vencendo":
-        return "📄";
+        return <HiDocumentText className="notification-icon-svg" />;
       case "premio_lancado":
-        return "🏆";
+        return <HiStar className="notification-icon-svg" />;
       case "boletim_pendente":
       case "boletim_vencendo":
-        return "📊";
+        return <HiChartBar className="notification-icon-svg" />;
       default:
-        return "🔔";
+        return <HiBell className="notification-icon-svg" />;
     }
   };
 
@@ -114,7 +118,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
         >
           <HiMenu />
         </button>
-        <h1 className="header-title">Sistema de Gestão RH</h1>
+        <Link to={paths.dashboard} className="header-logo-link" aria-label="Ir para o dashboard">
+          <img
+            src="/Sis_Gestão_RH-removebg-preview.png"
+            alt="Sistema de Gestão RH"
+            className="header-logo"
+          />
+        </Link>
       </div>
 
       <div className="header-right">

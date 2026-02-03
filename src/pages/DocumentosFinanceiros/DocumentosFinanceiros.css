@@ -30,7 +30,7 @@
 
 .page-icon {
   font-size: 48px;
-  color: #667eea;
+  color: #3b82f6;
 }
 
 .page-header h1 {
@@ -58,11 +58,11 @@
   gap: 8px;
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-primary {
@@ -77,14 +77,20 @@
   box-shadow: 0 6px 20px var(--theme-primary-shadow);
 }
 
+.btn-primary:active {
+  transform: translateY(0);
+}
+
 .btn-secondary {
-  background: #f7fafc;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
 .btn-secondary:hover {
-  background: #edf2f7;
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #3b82f6;
+  color: #2563eb;
 }
 
 /* Tabs */
@@ -207,7 +213,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -346,10 +352,18 @@
   font-weight: 600;
 }
 
+.documento-local-badge {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  padding: 4px 8px;
+}
+
 .documento-actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  align-items: center;
 }
 
 .btn-action {

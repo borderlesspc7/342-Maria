@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "../../components/Layout";
 import {
   HiUsers,
@@ -11,8 +12,19 @@ import {
   HiFolder,
   HiLink,
   HiX,
+  HiArrowRight,
 } from "react-icons/hi";
+import { paths } from "../../routes/paths";
+import { colaboradorService } from "../../services/colaboradorService";
+import { documentacoesService } from "../../services/documentacoesService";
+import { boletimMedicaoService } from "../../services/boletimMedicaoService";
+import { premioProdutividadeService } from "../../services/premioProdutividadeService";
 import "./Dashboard.css";
+
+const MESES_PT: string[] = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 
 interface Notification {
   id: string;
@@ -24,7 +36,28 @@ interface Notification {
   read: boolean;
 }
 
+interface DashboardStats {
+  colaboradores: number;
+  documentosPendentes: number;
+  boletinsMes: number;
+  premiosAtivos: number;
+  integracoesAtivas: number;
+  integracoesComErro: number;
+}
+
+const initialStats: DashboardStats = {
+  colaboradores: 0,
+  documentosPendentes: 0,
+  boletinsMes: 0,
+  premiosAtivos: 0,
+  integracoesAtivas: 0,
+  integracoesComErro: 0,
+};
+
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>(initialStats);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
@@ -82,14 +115,42 @@ const Dashboard: React.FC = () => {
     },
   ]);
 
-  const stats = {
-    colaboradores: 248,
-    documentosPendentes: 12,
-    boletinsMes: 8,
-    premiosAtivos: 5,
-    integracoesAtivas: 6,
-    integracoesComErro: 2,
-  };
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const now = new Date();
+      const mesAtual = MESES_PT[now.getMonth()];
+      const anoAtual = now.getFullYear();
+
+      const [colaboradores, documentos, boletins, premios] = await Promise.all([
+        colaboradorService.list(),
+        documentacoesService.list(),
+        boletimMedicaoService.getAll({ mes: mesAtual, ano: anoAtual }),
+        premioProdutividadeService.list(),
+      ]);
+
+      const documentosPendentes = documentos.filter(
+        (d) => d.status === "Pendente" || d.status === "Vencido" || d.status === "Vencendo"
+      ).length;
+
+      setStats({
+        colaboradores: colaboradores.length,
+        documentosPendentes,
+        boletinsMes: boletins.length,
+        premiosAtivos: premios.length,
+        integracoesAtivas: 0,
+        integracoesComErro: 0,
+      });
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas do dashboard:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   const markAsRead = (id: string) => {
     setNotifications((prev) =>
@@ -159,73 +220,135 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.colaboradores)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.colaboradores)}
+            aria-label="Ver colaboradores"
+          >
             <div className="stat-icon stat-icon-blue">
               <HiUsers />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Total de Colaboradores</h3>
-              <p className="stat-value">{stats.colaboradores}</p>
+              <p className="stat-value">
+                {statsLoading ? "—" : stats.colaboradores}
+              </p>
+              <span className="stat-ver-mais">
+                Ver colaboradores <HiArrowRight />
+              </span>
             </div>
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.documentacoes)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
+            aria-label="Ver documentos"
+          >
             <div className="stat-icon stat-icon-orange">
               <HiDocumentText />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Documentos Pendentes</h3>
               <p className="stat-value stat-value-warning">
-                {stats.documentosPendentes}
+                {statsLoading ? "—" : stats.documentosPendentes}
               </p>
+              <span className="stat-ver-mais">
+                Ver documentações <HiArrowRight />
+              </span>
             </div>
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.boletinsMedicao)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.boletinsMedicao)}
+            aria-label="Ver boletins"
+          >
             <div className="stat-icon stat-icon-green">
               <HiClipboardList />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Boletins do Mês</h3>
               <p className="stat-value stat-value-success">
-                {stats.boletinsMes}
+                {statsLoading ? "—" : stats.boletinsMes}
               </p>
+              <span className="stat-ver-mais">
+                Ver boletins <HiArrowRight />
+              </span>
             </div>
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.premiosProdutividade)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.premiosProdutividade)}
+            aria-label="Ver prêmios"
+          >
             <div className="stat-icon stat-icon-purple">
               <HiTrendingUp />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Prêmios Ativos</h3>
               <p className="stat-value stat-value-purple">
-                {stats.premiosAtivos}
+                {statsLoading ? "—" : stats.premiosAtivos}
               </p>
+              <span className="stat-ver-mais">
+                Ver prêmios <HiArrowRight />
+              </span>
             </div>
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.documentacoes)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
+            aria-label="Ver integrações"
+          >
             <div className="stat-icon stat-icon-teal">
               <HiLink />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Integrações Ativas</h3>
               <p className="stat-value stat-value-teal">
-                {stats.integracoesAtivas}
+                {statsLoading ? "—" : stats.integracoesAtivas}
               </p>
+              <span className="stat-ver-mais">
+                Documentação e Integração <HiArrowRight />
+              </span>
             </div>
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.documentacoes)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
+            aria-label="Ver integrações com erro"
+          >
             <div className="stat-icon stat-icon-red">
               <HiExclamationCircle />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Integrações com Erro</h3>
               <p className="stat-value stat-value-danger">
-                {stats.integracoesComErro}
+                {statsLoading ? "—" : stats.integracoesComErro}
               </p>
+              <span className="stat-ver-mais">
+                Documentação e Integração <HiArrowRight />
+              </span>
             </div>
           </div>
         </div>
@@ -336,20 +459,48 @@ const Dashboard: React.FC = () => {
         <div className="quick-actions">
           <h2 className="section-title">Ações Rápidas</h2>
           <div className="actions-grid">
-            <button className="action-button">
-              <HiFolder />
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => navigate(paths.documentacoes)}
+              aria-label="Ver Documentações"
+            >
+              <span className="action-icon">
+                <HiFolder />
+              </span>
               <span>Ver Documentações</span>
             </button>
-            <button className="action-button">
-              <HiTrendingUp />
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => navigate(paths.premiosProdutividade)}
+              aria-label="Ver Prêmios"
+            >
+              <span className="action-icon">
+                <HiTrendingUp />
+              </span>
               <span>Ver Prêmios</span>
             </button>
-            <button className="action-button">
-              <HiClipboardList />
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => navigate(paths.boletinsMedicao)}
+              aria-label="Ver Boletins"
+            >
+              <span className="action-icon">
+                <HiClipboardList />
+              </span>
               <span>Ver Boletins</span>
             </button>
-            <button className="action-button">
-              <HiLink />
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => navigate(paths.documentacoes)}
+              aria-label="Gerenciar Integrações"
+            >
+              <span className="action-icon">
+                <HiLink />
+              </span>
               <span>Gerenciar Integrações</span>
             </button>
           </div>

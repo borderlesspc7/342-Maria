@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Layout } from "../../components/Layout";
 import {
   HiPlus,
@@ -13,7 +13,10 @@ import {
   HiX,
 } from "react-icons/hi";
 import { cadernoVirtualService } from "../../services/cadernoVirtualService";
+import { colaboradorService } from "../../services/colaboradorService";
 import { useAuth } from "../../hooks/useAuth";
+import { useToast } from "../../contexts/ToastContext";
+import type { Colaborador } from "../../types/premioProdutividade";
 import type {
   LancamentoDiario,
   LancamentoFilters,
@@ -34,8 +37,10 @@ const statusOptions: LancamentoStatus[] = ["Recebido", "Pendente"];
 
 const LancamentosDiarios: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const hoje = new Date();
   const [lancamentos, setLancamentos] = useState<LancamentoDiario[]>([]);
+  const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
   const [filters, setFilters] = useState<LancamentoFilters>({
     dataInicio: new Date(hoje.getFullYear(), hoje.getMonth(), 1),
     dataFim: hoje,
@@ -53,15 +58,19 @@ const LancamentosDiarios: React.FC = () => {
       setLancamentos(data);
     } catch (error) {
       console.error("Erro ao carregar lançamentos:", error);
-      alert("Não foi possível carregar os lançamentos.");
+      showToast("Não foi possível carregar os lançamentos.", "error");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, showToast]);
 
   useEffect(() => {
     loadLancamentos();
   }, [loadLancamentos]);
+
+  useEffect(() => {
+    colaboradorService.list().then(setColaboradoresList).catch(console.error);
+  }, []);
 
   const handleFilterChange = (
     key: keyof LancamentoFilters,
@@ -78,9 +87,10 @@ const LancamentosDiarios: React.FC = () => {
     try {
       await cadernoVirtualService.delete(id);
       await loadLancamentos();
+      showToast("Lançamento removido com sucesso!");
     } catch (error) {
       console.error("Erro ao excluir lançamento:", error);
-      alert("Não foi possível remover o lançamento.");
+      showToast("Não foi possível remover o lançamento.", "error");
     }
   };
 
@@ -88,9 +98,10 @@ const LancamentosDiarios: React.FC = () => {
     try {
       await cadernoVirtualService.updateStatus(id, status);
       await loadLancamentos();
+      showToast("Status atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Falha ao atualizar status.");
+      showToast("Falha ao atualizar status.", "error");
     }
   };
 
@@ -380,6 +391,7 @@ const LancamentosDiarios: React.FC = () => {
         {showModal && (
           <LancamentoModal
             lancamento={editingLancamento}
+            colaboradoresList={colaboradoresList}
             onClose={() => {
               setShowModal(false);
               setEditingLancamento(null);
@@ -400,6 +412,7 @@ const LancamentosDiarios: React.FC = () => {
 
 interface LancamentoModalProps {
   lancamento: LancamentoDiario | null;
+  colaboradoresList: Colaborador[];
   onClose: () => void;
   onSuccess: () => void;
   userId: string;
@@ -408,28 +421,37 @@ interface LancamentoModalProps {
 
 const LancamentoModal: React.FC<LancamentoModalProps> = ({
   lancamento,
+  colaboradoresList,
   onClose,
   onSuccess,
   userId,
   userName,
 }) => {
-  const [formData, setFormData] = useState({
-    tipoMovimentacao: (lancamento?.tipoMovimentacao ||
-      "Serviço") as TipoMovimentacao,
+  const { showToast } = useToast();
+  const defaultColab = colaboradoresList.length > 0 ? colaboradoresList[0] : null;
+
+  const initialFormData = useMemo(() => ({
+    tipoMovimentacao: (lancamento?.tipoMovimentacao || "Serviço") as TipoMovimentacao,
     descricao: lancamento?.descricao || "",
-    valor: lancamento?.valor || 0,
-    valorDisplay: (lancamento?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    valor: lancamento?.valor ?? 0,
+    valorDisplay: (lancamento?.valor ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     dataLancamento: lancamento?.dataLancamento
       ? new Date(lancamento.dataLancamento).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
     status: (lancamento?.status || "Pendente") as LancamentoStatus,
-    colaboradorId: lancamento?.colaboradorId || userId,
-    colaboradorNome: lancamento?.colaboradorNome || userName,
+    colaboradorId: lancamento?.colaboradorId || defaultColab?.id || userId,
+    colaboradorNome: lancamento?.colaboradorNome || defaultColab?.nome || userName,
     observacoes: lancamento?.observacoes || "",
     anexos: [] as File[],
-  });
+  }), [lancamento]);
 
+  const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
+
+  /* Ao abrir para outro lançamento (editar), atualiza o formulário */
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [lancamento, initialFormData]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -479,6 +501,17 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
     }));
   };
 
+  const handleColaboradorChange = (colaboradorId: string) => {
+    const colaborador = colaboradoresList.find((c) => c.id === colaboradorId);
+    if (colaborador) {
+      setFormData((prev) => ({
+        ...prev,
+        colaboradorId: colaborador.id,
+        colaboradorNome: colaborador.nome,
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -498,14 +531,16 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
 
       if (lancamento) {
         await cadernoVirtualService.update(lancamento.id, payload);
+        showToast("Lançamento atualizado com sucesso!");
       } else {
         await cadernoVirtualService.create(payload, userId, userName);
+        showToast("Lançamento salvo com sucesso!");
       }
 
       onSuccess();
     } catch (error) {
       console.error("Erro ao salvar lançamento:", error);
-      alert("Não foi possível salvar o lançamento.");
+      showToast("Não foi possível salvar o lançamento.", "error");
     } finally {
       setSaving(false);
     }
@@ -570,14 +605,18 @@ const LancamentoModal: React.FC<LancamentoModalProps> = ({
           <div className="lancamentos-modal-row">
             <div className="lancamentos-modal-group">
               <label>Colaborador *</label>
-              <input
-                type="text"
-                name="colaboradorNome"
-                value={formData.colaboradorNome}
-                onChange={handleChange}
+              <select
+                value={formData.colaboradorId}
+                onChange={(e) => handleColaboradorChange(e.target.value)}
                 required
-                placeholder="Nome do colaborador"
-              />
+              >
+                <option value="">Selecione o colaborador...</option>
+                {colaboradoresList.map((colab) => (
+                  <option key={colab.id} value={colab.id}>
+                    {colab.nome}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="lancamentos-modal-group">

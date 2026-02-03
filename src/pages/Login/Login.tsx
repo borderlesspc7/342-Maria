@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HiMail, HiLockClosed, HiOfficeBuilding } from "react-icons/hi";
+import { HiMail, HiLockClosed } from "react-icons/hi";
 import { useAuth } from "../../hooks/useAuth";
 import "./Login.css";
 
@@ -93,9 +93,11 @@ const Login: React.FC = () => {
       <div className="login-card">
         <div className="login-header">
           <div className="logo-container">
-            <div className="logo-icon" aria-hidden="true">
-              <HiOfficeBuilding size={40} />
-            </div>
+            <img
+              src="/Sis_Gestão_RH-removebg-preview.png"
+              alt="Sistema de Gestão RH"
+              className="login-logo"
+            />
           </div>
           <h1>Bem-vindo de volta!</h1>
           <p>Acesse sua conta para continuar</p>

@@ -64,7 +64,7 @@ const ForgotPassword: React.FC = () => {
         <div className="forgot-password-header">
           <div className="logo-container">
             <div className="logo-icon">
-              <HiMail />
+              <HiMail size={48} />
             </div>
           </div>
           {!emailSent ? (

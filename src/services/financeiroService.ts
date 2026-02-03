@@ -21,10 +21,53 @@ import type {
   StatusTransacao,
   FormaPagamento,
   CategoriaFinanceira,
+  AnexoFinanceiro,
 } from "../types/financeiro";
-import { mockColaboradores } from "../types/premioProdutividade";
-
 const COLLECTION_NAME = "transacoes_financeiras";
+const LOCAL_STORAGE_KEY = "financeiro_transacoes_local";
+
+function isFirebaseConfigured(): boolean {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  return typeof projectId === "string" && projectId.trim().length > 0;
+}
+
+function generateLocalId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function getLocalTransacoes(): Transacao[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+    return parsed.map((t) => ({
+      ...t,
+      id: t.id as string,
+      dataVencimento: t.dataVencimento ? new Date(t.dataVencimento as string) : new Date(),
+      dataPagamento: t.dataPagamento ? new Date(t.dataPagamento as string) : undefined,
+      aprovadoEm: t.aprovadoEm ? new Date(t.aprovadoEm as string) : undefined,
+      pagoEm: t.pagoEm ? new Date(t.pagoEm as string) : undefined,
+      criadoEm: t.criadoEm ? new Date(t.criadoEm as string) : new Date(),
+      atualizadoEm: t.atualizadoEm ? new Date(t.atualizadoEm as string) : new Date(),
+      anexos: (t.anexos as AnexoFinanceiro[]) || [],
+    })) as Transacao[];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTransacoes(transacoes: Transacao[]): void {
+  const toSave = transacoes.map((t) => ({
+    ...t,
+    dataVencimento: t.dataVencimento?.toISOString?.() ?? null,
+    dataPagamento: t.dataPagamento?.toISOString?.() ?? null,
+    aprovadoEm: t.aprovadoEm?.toISOString?.() ?? null,
+    pagoEm: t.pagoEm?.toISOString?.() ?? null,
+    criadoEm: t.criadoEm?.toISOString?.() ?? null,
+    atualizadoEm: t.atualizadoEm?.toISOString?.() ?? null,
+  }));
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
+}
 
 // Helper para converter Date para Timestamp
 const dateToTimestamp = (date: Date): Timestamp => {
@@ -44,22 +87,28 @@ const generateTempId = () => {
   return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Dados mockados como fallback
+// Dados mockados como fallback (sem dependência de colaboradores externos)
 const getMockTransacoes = (): Transacao[] => {
   const hoje = new Date();
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
 
-  const colaborador = mockColaboradores[0];
+  const placeholderColab = {
+    id: "exemplo",
+    nome: "Colaborador (exemplo)",
+    cpf: "",
+    cargo: "",
+    setor: "",
+  };
 
   return [
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
-      colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
-      cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      colaboradorId: placeholderColab.id,
+      colaboradorNome: placeholderColab.nome,
+      cpf: placeholderColab.cpf,
+      cargo: placeholderColab.cargo,
+      setor: placeholderColab.setor,
       tipoTransacao: "Adiantamento",
       categoria: "Adiantamento Salarial",
       valor: 1500.0,
@@ -74,11 +123,11 @@ const getMockTransacoes = (): Transacao[] => {
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Salário",
       valor: 4500.0,
@@ -100,11 +149,11 @@ const getMockTransacoes = (): Transacao[] => {
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Reembolso",
       categoria: "Reembolso",
       valor: 350.0,
@@ -116,17 +165,17 @@ const getMockTransacoes = (): Transacao[] => {
       anexos: [],
       aprovadoPor: "admin-001",
       aprovadoEm: new Date(anoAtual, mesAtual, 8),
-      criadoPor: colaborador.id,
+      criadoPor: placeholderColab.id,
       criadoEm: new Date(anoAtual, mesAtual, 7),
       atualizadoEm: new Date(anoAtual, mesAtual, 8),
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Vale Transporte",
       valor: 220.0,
@@ -148,11 +197,11 @@ const getMockTransacoes = (): Transacao[] => {
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Vale Alimentação",
       valor: 600.0,
@@ -174,11 +223,11 @@ const getMockTransacoes = (): Transacao[] => {
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Prêmio",
       valor: 800.0,
@@ -196,11 +245,11 @@ const getMockTransacoes = (): Transacao[] => {
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Reembolso",
       categoria: "Reembolso",
       valor: 150.0,
@@ -209,17 +258,17 @@ const getMockTransacoes = (): Transacao[] => {
       status: "Pendente",
       observacoes: "Aguardando aprovação do gestor",
       anexos: [],
-      criadoPor: colaborador.id,
+      criadoPor: placeholderColab.id,
       criadoEm: new Date(anoAtual, mesAtual, 12),
       atualizadoEm: new Date(anoAtual, mesAtual, 12),
     },
     {
       id: generateTempId(),
-      colaboradorId: colaborador.id,
+      colaboradorId: placeholderColab.id,
       colaboradorNome: colaborador.nome,
-      cpf: colaborador.cpf,
+      cpf: placeholderColab.cpf,
       cargo: colaborador.cargo,
-      setor: colaborador.setor,
+      setor: placeholderColab.setor,
       tipoTransacao: "Desconto",
       categoria: "Despesa Operacional",
       valor: 50.0,
@@ -302,12 +351,40 @@ export const financeiroService = {
         } as Transacao;
       });
 
-      // Se não houver dados no banco, retorna dados mockados como fallback
+      // Se não houver dados no banco, usa lista local ou seed com mock
       if (transacoes.length === 0) {
-        console.log(
-          "📦 Nenhuma transação encontrada no banco. Usando dados mockados como fallback."
-        );
-        transacoes = getMockTransacoes();
+        let local = getLocalTransacoes();
+        if (local.length === 0) {
+          const mock = getMockTransacoes().map((t, i) => ({
+            ...t,
+            id: `local-mock-${i}-${Date.now()}`,
+          }));
+          saveLocalTransacoes(mock);
+          local = mock;
+        }
+        transacoes = local;
+        // Aplicar todos os filtros na lista local
+        if (filters.colaboradorNome) {
+          const nomeLower = filters.colaboradorNome.toLowerCase();
+          transacoes = transacoes.filter((t) =>
+            t.colaboradorNome.toLowerCase().includes(nomeLower)
+          );
+        }
+        if (filters.tipoTransacao) {
+          transacoes = transacoes.filter((t) => t.tipoTransacao === filters.tipoTransacao);
+        }
+        if (filters.status) {
+          transacoes = transacoes.filter((t) => t.status === filters.status);
+        }
+        if (filters.categoria) {
+          transacoes = transacoes.filter((t) => t.categoria === filters.categoria);
+        }
+        if (filters.dataInicio) {
+          transacoes = transacoes.filter((t) => t.dataVencimento >= filters.dataInicio!);
+        }
+        if (filters.dataFim) {
+          transacoes = transacoes.filter((t) => t.dataVencimento <= filters.dataFim!);
+        }
       }
 
       // Filtros adicionais que não podem ser aplicados no Firestore
@@ -330,63 +407,44 @@ export const financeiroService = {
       return transacoes;
     } catch (error) {
       console.error("Erro ao listar transações:", error);
-      console.log(
-        "📦 Erro ao acessar banco. Usando dados mockados como fallback."
-      );
-      // Em caso de erro, retorna dados mockados como fallback
-      let mockTransacoes = getMockTransacoes();
+      let local = getLocalTransacoes();
+      if (local.length === 0) {
+        const mock = getMockTransacoes().map((t, i) => ({
+          ...t,
+          id: `local-mock-${i}-${Date.now()}`,
+        }));
+        saveLocalTransacoes(mock);
+        local = mock;
+      }
 
-      // Aplicar filtros básicos nos dados mockados
       if (filters.colaboradorNome) {
         const nomeLower = filters.colaboradorNome.toLowerCase();
-        mockTransacoes = mockTransacoes.filter((t) =>
+        local = local.filter((t) =>
           t.colaboradorNome.toLowerCase().includes(nomeLower)
         );
       }
-
       if (filters.tipoTransacao) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.tipoTransacao === filters.tipoTransacao
-        );
+        local = local.filter((t) => t.tipoTransacao === filters.tipoTransacao);
       }
-
       if (filters.status) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.status === filters.status
-        );
+        local = local.filter((t) => t.status === filters.status);
       }
-
       if (filters.categoria) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.categoria === filters.categoria
-        );
+        local = local.filter((t) => t.categoria === filters.categoria);
       }
-
       if (filters.dataInicio) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.dataVencimento >= filters.dataInicio!
-        );
+        local = local.filter((t) => t.dataVencimento >= filters.dataInicio!);
       }
-
       if (filters.dataFim) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.dataVencimento <= filters.dataFim!
-        );
+        local = local.filter((t) => t.dataVencimento <= filters.dataFim!);
       }
-
       if (filters.valorMin !== undefined) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.valor >= filters.valorMin!
-        );
+        local = local.filter((t) => t.valor >= filters.valorMin!);
       }
-
       if (filters.valorMax !== undefined) {
-        mockTransacoes = mockTransacoes.filter(
-          (t) => t.valor <= filters.valorMax!
-        );
+        local = local.filter((t) => t.valor <= filters.valorMax!);
       }
-
-      return mockTransacoes;
+      return local;
     }
   },
 
@@ -394,6 +452,37 @@ export const financeiroService = {
     formData: TransacaoFormData,
     criadoPor: string
   ): Promise<string> {
+    const valor = typeof formData.valor === "number" ? formData.valor : parseFloat(String(formData.valor)) || 0;
+    const now = new Date();
+
+    if (!isFirebaseConfigured()) {
+      const id = generateLocalId();
+      const nova: Transacao = {
+        id,
+        colaboradorId: formData.colaboradorId,
+        colaboradorNome: formData.colaboradorNome,
+        cpf: formData.cpf,
+        cargo: formData.cargo,
+        setor: formData.setor,
+        tipoTransacao: formData.tipoTransacao,
+        categoria: formData.categoria,
+        valor,
+        descricao: formData.descricao,
+        dataVencimento: formData.dataVencimento,
+        status: "Pendente",
+        formaPagamento: formData.formaPagamento,
+        observacoes: formData.observacoes || "",
+        anexos: [],
+        criadoPor,
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+      const local = getLocalTransacoes();
+      local.push(nova);
+      saveLocalTransacoes(local);
+      return id;
+    }
+
     try {
       const novaTransacao = {
         colaboradorId: formData.colaboradorId,
@@ -403,7 +492,7 @@ export const financeiroService = {
         setor: formData.setor,
         tipoTransacao: formData.tipoTransacao,
         categoria: formData.categoria,
-        valor: formData.valor,
+        valor,
         descricao: formData.descricao,
         dataVencimento: dateToTimestamp(formData.dataVencimento),
         status: "Pendente" as StatusTransacao,
@@ -422,7 +511,31 @@ export const financeiroService = {
       return docRef.id;
     } catch (error) {
       console.error("Erro ao criar transação:", error);
-      throw error;
+      const id = generateLocalId();
+      const nova: Transacao = {
+        id,
+        colaboradorId: formData.colaboradorId,
+        colaboradorNome: formData.colaboradorNome,
+        cpf: formData.cpf,
+        cargo: formData.cargo,
+        setor: formData.setor,
+        tipoTransacao: formData.tipoTransacao,
+        categoria: formData.categoria,
+        valor,
+        descricao: formData.descricao,
+        dataVencimento: formData.dataVencimento,
+        status: "Pendente",
+        formaPagamento: formData.formaPagamento,
+        observacoes: formData.observacoes || "",
+        anexos: [],
+        criadoPor,
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+      const local = getLocalTransacoes();
+      local.push(nova);
+      saveLocalTransacoes(local);
+      return id;
     }
   },
 
@@ -430,13 +543,34 @@ export const financeiroService = {
     id: string,
     formData: Partial<TransacaoFormData>
   ): Promise<void> {
+    if (id.startsWith("local-")) {
+      const local = getLocalTransacoes();
+      const idx = local.findIndex((t) => t.id === id);
+      if (idx === -1) return;
+      const valor = formData.valor !== undefined
+        ? (typeof formData.valor === "number" ? formData.valor : parseFloat(String(formData.valor)) || 0)
+        : local[idx].valor;
+      local[idx] = {
+        ...local[idx],
+        ...formData,
+        valor,
+        dataVencimento: formData.dataVencimento ?? local[idx].dataVencimento,
+        atualizadoEm: new Date(),
+      };
+      saveLocalTransacoes(local);
+      return;
+    }
+
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
+      const valor = formData.valor !== undefined
+        ? (typeof formData.valor === "number" ? formData.valor : parseFloat(String(formData.valor)) || 0)
+        : undefined;
       const updateData: Record<string, unknown> = {
         ...formData,
         atualizadoEm: Timestamp.now(),
       };
-
+      if (valor !== undefined) updateData.valor = valor;
       if (formData.dataVencimento) {
         updateData.dataVencimento = dateToTimestamp(formData.dataVencimento);
       }
@@ -449,6 +583,12 @@ export const financeiroService = {
   },
 
   async delete(id: string): Promise<void> {
+    if (id.startsWith("local-")) {
+      const local = getLocalTransacoes().filter((t) => t.id !== id);
+      saveLocalTransacoes(local);
+      return;
+    }
+
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, id));
     } catch (error) {
@@ -465,6 +605,29 @@ export const financeiroService = {
     numeroComprovante?: string,
     observacoes?: string
   ): Promise<void> {
+    if (id.startsWith("local-")) {
+      const local = getLocalTransacoes();
+      const idx = local.findIndex((t) => t.id === id);
+      if (idx === -1) return;
+      const now = new Date();
+      local[idx] = {
+        ...local[idx],
+        status,
+        atualizadoEm: now,
+        ...(status === "Aprovado" && { aprovadoPor: userId, aprovadoEm: now }),
+        ...(status === "Pago" && {
+          pagoPor: userId,
+          pagoEm: now,
+          dataPagamento: now,
+          ...(formaPagamento && { formaPagamento }),
+          ...(numeroComprovante && { numeroComprovante }),
+        }),
+        ...(observacoes && { observacoes }),
+      };
+      saveLocalTransacoes(local);
+      return;
+    }
+
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData: Record<string, unknown> = {

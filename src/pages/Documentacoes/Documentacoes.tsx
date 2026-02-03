@@ -17,8 +17,10 @@ import {
   HiBell,
 } from "react-icons/hi";
 import { documentacoesService } from "../../services/documentacoesService";
+import { colaboradorService } from "../../services/colaboradorService";
 import { useAuth } from "../../hooks/useAuth";
-import { mockColaboradores } from "../../types/premioProdutividade";
+import { useToast } from "../../contexts/ToastContext";
+import type { Colaborador } from "../../types/premioProdutividade";
 import type {
   Documento,
   DocumentoFilters,
@@ -62,8 +64,10 @@ const statusOptions: StatusDocumento[] = [
 
 const Documentacoes: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [treinamentos, setTreinamentos] = useState<Treinamento[]>([]);
+  const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
   const [stats, setStats] = useState<DocumentoStats>({
     total: 0,
     validos: 0,
@@ -121,6 +125,10 @@ const Documentacoes: React.FC = () => {
     loadDocumentos();
     loadStats();
   }, [loadDocumentos, loadStats]);
+
+  useEffect(() => {
+    colaboradorService.list().then(setColaboradoresList).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (activeTab === "treinamentos") {
@@ -187,14 +195,16 @@ const Documentacoes: React.FC = () => {
           editingTreinamento.id,
           formData
         );
+        showToast("Treinamento atualizado com sucesso!");
       } else {
         await documentacoesService.createTreinamento(formData);
+        showToast("Treinamento salvo com sucesso!");
       }
       handleCloseTreinamentoModal();
       loadTreinamentos();
     } catch (error) {
       console.error("Erro ao salvar treinamento:", error);
-      alert("Não foi possível salvar o treinamento.");
+      showToast("Não foi possível salvar o treinamento.", "error");
     }
   };
 
@@ -202,10 +212,11 @@ const Documentacoes: React.FC = () => {
     if (!confirm("Tem certeza que deseja excluir este treinamento?")) return;
     try {
       await documentacoesService.deleteTreinamento(id);
+      showToast("Treinamento excluído com sucesso!");
       loadTreinamentos();
     } catch (error) {
       console.error("Erro ao excluir treinamento:", error);
-      alert("Não foi possível excluir o treinamento.");
+      showToast("Não foi possível excluir o treinamento.", "error");
     }
   };
 
@@ -608,6 +619,7 @@ const Documentacoes: React.FC = () => {
         {showModal && (
           <DocumentoModal
             documento={editingDocumento}
+            colaboradoresList={colaboradoresList}
             onClose={handleCloseModal}
             onSave={handleSaveDocumento}
           />
@@ -616,6 +628,7 @@ const Documentacoes: React.FC = () => {
         {showTreinamentoModal && (
           <TreinamentoModal
             treinamento={editingTreinamento}
+            colaboradoresList={colaboradoresList}
             onClose={handleCloseTreinamentoModal}
             onSave={handleSaveTreinamento}
           />
@@ -627,12 +640,14 @@ const Documentacoes: React.FC = () => {
 
 interface DocumentoModalProps {
   documento: Documento | null;
+  colaboradoresList: Colaborador[];
   onClose: () => void;
   onSave: (data: DocumentoFormData) => void;
 }
 
 const DocumentoModal: React.FC<DocumentoModalProps> = ({
   documento,
+  colaboradoresList,
   onClose,
   onSave,
 }) => {
@@ -691,7 +706,7 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
   };
 
   const handleColaboradorChange = (colaboradorId: string) => {
-    const colaborador = mockColaboradores.find((c) => c.id === colaboradorId);
+    const colaborador = colaboradoresList.find((c) => c.id === colaboradorId);
     if (colaborador) {
       setFormData((prev) => ({
         ...prev,
@@ -749,7 +764,7 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
               required
             >
               <option value="">Selecione...</option>
-              {mockColaboradores.map((colab) => (
+              {colaboradoresList.map((colab) => (
                 <option key={colab.id} value={colab.id}>
                   {colab.nome}
                 </option>
@@ -997,7 +1012,7 @@ const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
               required
               size={5}
             >
-              {mockColaboradores.map((colab) => (
+              {colaboradoresList.map((colab) => (
                 <option key={colab.id} value={colab.id}>
                   {colab.nome}
                 </option>

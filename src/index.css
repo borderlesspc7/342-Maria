@@ -9,15 +9,15 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Cores do tema (fundo e botões) */
+  /* Cores do tema (fundo e botões) - azul/ciano */
   --theme-bg-start: #bfdbfe;
-  --theme-bg-mid: #c7d2fe;
-  --theme-bg-end: #a5b4fc;
-  --theme-primary-bg: linear-gradient(135deg, #c7d2fe 0%, #ddd6fe 50%, #bfdbfe 100%);
-  --theme-primary-text: #3730a3;
-  --theme-primary-shadow: rgba(99, 102, 241, 0.25);
-  --theme-accent: #818cf8;
-  --theme-accent-hover: #6366f1;
+  --theme-bg-mid: #7dd3fc;
+  --theme-bg-end: #67e8f9;
+  --theme-primary-bg: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  --theme-primary-text: #fff;
+  --theme-primary-shadow: rgba(59, 130, 246, 0.35);
+  --theme-accent: #3b82f6;
+  --theme-accent-hover: #2563eb;
 }
 
 * {
@@ -26,8 +26,23 @@
   padding: 0;
 }
 
+html {
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: inherit;
   color: inherit;
+  overflow-x: hidden;
+  /* Safe area para notch/home indicator em celulares */
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+#root {
+  min-height: 100vh;
+  overflow-x: hidden;
 }

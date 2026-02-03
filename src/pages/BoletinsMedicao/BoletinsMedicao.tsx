@@ -20,6 +20,7 @@ import type {
   TipoServico,
 } from "../../types/boletimMedicao";
 import { boletimMedicaoService } from "../../services/boletimMedicaoService";
+import { useToast } from "../../contexts/ToastContext";
 import "./BoletinsMedicao.css";
 
 const BoletinsMedicao: React.FC = () => {
@@ -111,11 +112,12 @@ const BoletinsMedicao: React.FC = () => {
     if (window.confirm("Tem certeza que deseja excluir este boletim?")) {
       try {
         await boletimMedicaoService.delete(id);
+        showToast("Boletim excluído com sucesso!");
         loadBoletins();
         loadStats();
       } catch (error) {
         console.error("Erro ao excluir boletim:", error);
-        alert("Erro ao excluir boletim");
+        showToast("Erro ao excluir boletim", "error");
       }
     }
   };
@@ -476,13 +478,15 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
 
       if (boletim) {
         await boletimMedicaoService.update(boletim.id, data);
+        showToast("Boletim atualizado com sucesso!");
       } else {
         await boletimMedicaoService.create(data);
+        showToast("Boletim salvo com sucesso!");
       }
       onSave();
     } catch (error) {
       console.error("Erro ao salvar boletim:", error);
-      alert("Erro ao salvar boletim");
+      showToast("Erro ao salvar boletim", "error");
     } finally {
       setLoading(false);
     }

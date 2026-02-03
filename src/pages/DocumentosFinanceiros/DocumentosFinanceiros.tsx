@@ -20,17 +20,27 @@ import type {
   NotaFiscalFormData,
   ComprovanteBancarioFormData,
 } from "../../types/documentosFinanceiros";
+import {
+  maskCurrency,
+  unmaskCurrency,
+  maskCNPJ,
+  maskCPFOrCNPJ,
+} from "../../utils/masks";
 import { Layout } from "../../components/Layout";
+import { useToast } from "../../contexts/ToastContext";
 import "./DocumentosFinanceiros.css";
 
 const DocumentosFinanceiros: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [abaAtiva, setAbaAtiva] = useState<"notas" | "comprovantes">("notas");
   const [notasFiscais, setNotasFiscais] = useState<NotaFiscal[]>([]);
   const [comprovantes, setComprovantes] = useState<ComprovanteBancario[]>([]);
   const [loading, setLoading] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [valorNotaDisplay, setValorNotaDisplay] = useState("");
+  const [valorComprovanteDisplay, setValorComprovanteDisplay] = useState("");
 
   // Estados do formulário de Nota Fiscal
   const [formNotaFiscal, setFormNotaFiscal] = useState<
@@ -103,6 +113,7 @@ const DocumentosFinanceiros: React.FC = () => {
         categoria: "",
         arquivo: null,
       });
+      setValorNotaDisplay("");
       setMostrarFormulario(false);
       await carregarDados();
       alert("Nota fiscal cadastrada com sucesso!");
@@ -136,12 +147,13 @@ const DocumentosFinanceiros: React.FC = () => {
         descricao: "",
         arquivo: null,
       });
+      setValorComprovanteDisplay("");
       setMostrarFormulario(false);
       await carregarDados();
-      alert("Comprovante bancário cadastrado com sucesso!");
+      showToast("Comprovante bancário cadastrado com sucesso!");
     } catch (error) {
       console.error("Erro ao cadastrar comprovante:", error);
-      alert("Erro ao cadastrar comprovante bancário");
+      showToast("Erro ao cadastrar comprovante bancário", "error");
     } finally {
       setLoading(false);
     }
@@ -164,10 +176,11 @@ const DocumentosFinanceiros: React.FC = () => {
 
     try {
       await documentosFinanceirosService.deletarComprovanteBancario(id);
+      showToast("Comprovante excluído com sucesso!");
       await carregarDados();
     } catch (error) {
       console.error("Erro ao deletar comprovante:", error);
-      alert("Erro ao deletar comprovante");
+      showToast("Erro ao deletar comprovante", "error");
     }
   };
 
@@ -323,9 +336,11 @@ const DocumentosFinanceiros: React.FC = () => {
                       onChange={(e) =>
                         setFormNotaFiscal({
                           ...formNotaFiscal,
-                          cnpjFornecedor: e.target.value,
+                          cnpjFornecedor: maskCNPJ(e.target.value),
                         })
                       }
+                      placeholder="00.000.000/0000-00"
+                      maxLength={18}
                     />
                   </div>
                 </div>
@@ -334,16 +349,17 @@ const DocumentosFinanceiros: React.FC = () => {
                   <div className="form-group">
                     <label>Valor *</label>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formNotaFiscal.valor}
-                      onChange={(e) =>
-                        setFormNotaFiscal({
-                          ...formNotaFiscal,
-                          valor: parseFloat(e.target.value) || 0,
-                        })
-                      }
+                      type="text"
+                      value={valorNotaDisplay}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setValorNotaDisplay(maskCurrency(raw));
+                        setFormNotaFiscal((prev) => ({
+                          ...prev,
+                          valor: unmaskCurrency(raw),
+                        }));
+                      }}
+                      placeholder="R$ 0,00"
                       required
                     />
                   </div>
@@ -545,16 +561,17 @@ const DocumentosFinanceiros: React.FC = () => {
                   <div className="form-group">
                     <label>Valor *</label>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formComprovante.valor}
-                      onChange={(e) =>
-                        setFormComprovante({
-                          ...formComprovante,
-                          valor: parseFloat(e.target.value) || 0,
-                        })
-                      }
+                      type="text"
+                      value={valorComprovanteDisplay}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setValorComprovanteDisplay(maskCurrency(raw));
+                        setFormComprovante((prev) => ({
+                          ...prev,
+                          valor: unmaskCurrency(raw),
+                        }));
+                      }}
+                      placeholder="R$ 0,00"
                       required
                     />
                   </div>
@@ -602,9 +619,11 @@ const DocumentosFinanceiros: React.FC = () => {
                       onChange={(e) =>
                         setFormComprovante({
                           ...formComprovante,
-                          cpfCnpjBeneficiario: e.target.value,
+                          cpfCnpjBeneficiario: maskCPFOrCNPJ(e.target.value),
                         })
                       }
+                      placeholder="CPF ou CNPJ"
+                      maxLength={18}
                     />
                   </div>
                   <div className="form-group">
@@ -727,23 +746,31 @@ const DocumentosFinanceiros: React.FC = () => {
                       </div>
                     </div>
                     <div className="documento-actions">
-                      <a
-                        href={nota.arquivo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-action"
-                      >
-                        <HiEye />
-                        Visualizar
-                      </a>
-                      <a
-                        href={nota.arquivo.url}
-                        download
-                        className="btn-action"
-                      >
-                        <HiDownload />
-                        Download
-                      </a>
+                      {nota.arquivo?.url ? (
+                        <>
+                          <a
+                            href={nota.arquivo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-action"
+                          >
+                            <HiEye />
+                            Visualizar
+                          </a>
+                          <a
+                            href={nota.arquivo.url}
+                            download
+                            className="btn-action"
+                          >
+                            <HiDownload />
+                            Download
+                          </a>
+                        </>
+                      ) : (
+                        <span className="documento-local-badge">
+                          Salvo localmente
+                        </span>
+                      )}
                       <button
                         className="btn-action danger"
                         onClick={() => handleDeletarNotaFiscal(nota.id)}

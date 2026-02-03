@@ -28,6 +28,68 @@ import type {
 
 const documentosCollection = collection(db, "documentacoes");
 const treinamentosCollection = collection(db, "treinamentos");
+const LOCAL_DOCS_KEY = "documentacoes_documentos_local";
+const CREATE_TIMEOUT_MS = 15000;
+const LIST_TIMEOUT_MS = 10000;
+
+function isFirebaseConfigured(): boolean {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  return typeof projectId === "string" && projectId.trim().length > 0;
+}
+
+function timeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(message)), ms)
+  );
+}
+
+function getLocalDocumentos(): Documento[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_DOCS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+    return parsed.map((d) => ({
+      ...d,
+      dataEmissao: d.dataEmissao ? new Date(d.dataEmissao as string) : undefined,
+      dataValidade: d.dataValidade ? new Date(d.dataValidade as string) : new Date(),
+      dataAlerta: d.dataAlerta ? new Date(d.dataAlerta as string) : undefined,
+      criadoEm: d.criadoEm ? new Date(d.criadoEm as string) : new Date(),
+      atualizadoEm: d.atualizadoEm ? new Date(d.atualizadoEm as string) : new Date(),
+      anexos: (d.anexos as Documento["anexos"]) || [],
+    })) as Documento[];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalDocumento(doc: Documento): void {
+  const list = getLocalDocumentos();
+  const idx = list.findIndex((d) => d.id === doc.id);
+  const serialized = (idx >= 0 ? list.map((d, i) => (i === idx ? doc : d)) : [...list, doc]).map(
+    (d) => ({
+      ...d,
+      dataEmissao: d.dataEmissao?.toISOString?.() ?? null,
+      dataValidade: d.dataValidade?.toISOString?.() ?? null,
+      dataAlerta: d.dataAlerta?.toISOString?.() ?? null,
+      criadoEm: d.criadoEm?.toISOString?.() ?? null,
+      atualizadoEm: d.atualizadoEm?.toISOString?.() ?? null,
+    })
+  );
+  localStorage.setItem(LOCAL_DOCS_KEY, JSON.stringify(serialized));
+}
+
+function removeLocalDocumento(id: string): void {
+  const list = getLocalDocumentos().filter((d) => d.id !== id);
+  const serialized = list.map((d) => ({
+    ...d,
+    dataEmissao: d.dataEmissao?.toISOString?.() ?? null,
+    dataValidade: d.dataValidade?.toISOString?.() ?? null,
+    dataAlerta: d.dataAlerta?.toISOString?.() ?? null,
+    criadoEm: d.criadoEm?.toISOString?.() ?? null,
+    atualizadoEm: d.atualizadoEm?.toISOString?.() ?? null,
+  }));
+  localStorage.setItem(LOCAL_DOCS_KEY, JSON.stringify(serialized));
+}
 
 const calcularStatusDocumento = (dataValidade: Date): StatusDocumento => {
   const hoje = new Date();
@@ -113,49 +175,118 @@ const buildFiltersQuery = (filters?: DocumentoFilters) => {
   return query(documentosCollection, ...constraints);
 };
 
+const applyFiltersToDocumentos = (
+  documentos: Documento[],
+  filters?: DocumentoFilters
+): Documento[] => {
+  let result = documentos;
+  if (filters?.status) {
+    result = result.filter((d) => d.status === filters.status);
+  }
+  if (filters?.vencidos) {
+    result = result.filter((d) => d.status === "Vencido");
+  }
+  if (filters?.vencendoEm7Dias) {
+    result = result.filter((d) => d.status === "Vencendo");
+  }
+  if (filters?.vencendoEm30Dias) {
+    const hoje = new Date();
+    const trintaDias = new Date(hoje);
+    trintaDias.setDate(trintaDias.getDate() + 30);
+    result = result.filter(
+      (d) =>
+        d.dataValidade >= hoje &&
+        d.dataValidade <= trintaDias &&
+        d.status !== "Vencido"
+    );
+  }
+  return result;
+};
+
 export const documentacoesService = {
   async list(filters?: DocumentoFilters): Promise<Documento[]> {
-    const q = buildFiltersQuery(filters);
-    const snapshot = await getDocs(q);
-    let documentos = snapshot.docs.map(mapSnapshotToDocumento);
-
-    // Filtros adicionais que não podem ser feitos no Firestore
-    if (filters?.status) {
-      documentos = documentos.filter((d) => d.status === filters.status);
+    if (!isFirebaseConfigured()) {
+      return applyFiltersToDocumentos(getLocalDocumentos(), filters);
     }
 
-    if (filters?.vencidos) {
-      documentos = documentos.filter((d) => d.status === "Vencido");
-    }
+    try {
+      const q = buildFiltersQuery(filters);
+      const fetchDocs = (): Promise<Documento[]> =>
+        getDocs(q).then((snapshot) =>
+          snapshot.docs.map(mapSnapshotToDocumento)
+        );
+      let documentos = await Promise.race([
+        fetchDocs(),
+        timeoutPromise<Documento[]>(LIST_TIMEOUT_MS, "list_timeout"),
+      ]);
 
-    if (filters?.vencendoEm7Dias) {
-      documentos = documentos.filter((d) => d.status === "Vencendo");
-    }
-
-    if (filters?.vencendoEm30Dias) {
-      const hoje = new Date();
-      const trintaDias = new Date(hoje);
-      trintaDias.setDate(trintaDias.getDate() + 30);
-      documentos = documentos.filter(
-        (d) =>
-          d.dataValidade >= hoje &&
-          d.dataValidade <= trintaDias &&
-          d.status !== "Vencido"
+      const local = getLocalDocumentos();
+      const merged = [...documentos];
+      for (const d of local) {
+        if (!merged.some((m) => m.id === d.id)) merged.push(d);
+      }
+      merged.sort(
+        (a, b) =>
+          new Date(a.dataValidade).getTime() - new Date(b.dataValidade).getTime()
       );
-    }
 
-    return documentos;
+      return applyFiltersToDocumentos(merged, filters);
+    } catch (error) {
+      console.error("Erro ao listar documentos:", error);
+      return applyFiltersToDocumentos(getLocalDocumentos(), filters);
+    }
   },
 
   async create(data: DocumentoFormData, criadoPor: string): Promise<string> {
-    const status = calcularStatusDocumento(data.dataValidade);
+    const dataValidade =
+      data.dataValidade instanceof Date
+        ? data.dataValidade
+        : new Date(data.dataValidade as unknown as string);
+    const dataEmissao = data.dataEmissao
+      ? data.dataEmissao instanceof Date
+        ? data.dataEmissao
+        : new Date(data.dataEmissao as unknown as string)
+      : undefined;
+    const status = calcularStatusDocumento(dataValidade);
+    const now = new Date();
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+    if (!isFirebaseConfigured()) {
+      const doc: Documento = {
+        id: localId,
+        colaboradorId: data.colaboradorId,
+        colaboradorNome: data.colaboradorNome,
+        cpf: data.cpf,
+        cargo: data.cargo,
+        setor: data.setor,
+        tipoDocumento: data.tipoDocumento,
+        numeroDocumento: data.numeroDocumento,
+        orgaoEmissor: data.orgaoEmissor,
+        dataEmissao,
+        dataValidade,
+        status,
+        observacoes: data.observacoes,
+        anexos: [],
+        alertaEnviado: false,
+        criadoPor,
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+      saveLocalDocumento(doc);
+      return localId;
+    }
 
     const payload = {
-      ...data,
-      dataEmissao: data.dataEmissao
-        ? Timestamp.fromDate(data.dataEmissao)
-        : null,
-      dataValidade: Timestamp.fromDate(data.dataValidade),
+      colaboradorId: data.colaboradorId,
+      colaboradorNome: data.colaboradorNome,
+      cpf: data.cpf,
+      cargo: data.cargo,
+      setor: data.setor,
+      tipoDocumento: data.tipoDocumento,
+      numeroDocumento: data.numeroDocumento ?? "",
+      orgaoEmissor: data.orgaoEmissor ?? "",
+      dataEmissao: dataEmissao ? Timestamp.fromDate(dataEmissao) : null,
+      dataValidade: Timestamp.fromDate(dataValidade),
       status,
       colaboradorNomeSearch: data.colaboradorNome
         .toLowerCase()
@@ -168,14 +299,64 @@ export const documentacoesService = {
       atualizadoEm: Timestamp.now(),
     };
 
-    const docRef = await addDoc(documentosCollection, payload);
-    return docRef.id;
+    try {
+      const docRef = await Promise.race([
+        addDoc(documentosCollection, payload),
+        timeoutPromise<ReturnType<typeof addDoc>>(CREATE_TIMEOUT_MS, "timeout"),
+      ]);
+      return docRef.id;
+    } catch (error) {
+      console.error("Erro ao criar documento:", error);
+      const doc: Documento = {
+        id: localId,
+        colaboradorId: data.colaboradorId,
+        colaboradorNome: data.colaboradorNome,
+        cpf: data.cpf,
+        cargo: data.cargo,
+        setor: data.setor,
+        tipoDocumento: data.tipoDocumento,
+        numeroDocumento: data.numeroDocumento,
+        orgaoEmissor: data.orgaoEmissor,
+        dataEmissao,
+        dataValidade,
+        status,
+        observacoes: data.observacoes,
+        anexos: [],
+        alertaEnviado: false,
+        criadoPor,
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+      saveLocalDocumento(doc);
+      return localId;
+    }
   },
 
   async update(
     id: string,
     data: Partial<DocumentoFormData>
   ): Promise<void> {
+    if (id.startsWith("local-")) {
+      const list = getLocalDocumentos();
+      const idx = list.findIndex((d) => d.id === id);
+      if (idx === -1) return;
+      const dataValidade = data.dataValidade
+        ? data.dataValidade instanceof Date
+          ? data.dataValidade
+          : new Date(data.dataValidade as unknown as string)
+        : list[idx].dataValidade;
+      list[idx] = {
+        ...list[idx],
+        ...data,
+        dataValidade,
+        dataEmissao: data.dataEmissao ?? list[idx].dataEmissao,
+        status: calcularStatusDocumento(dataValidade),
+        atualizadoEm: new Date(),
+      };
+      saveLocalDocumento(list[idx]);
+      return;
+    }
+
     const updateData: Record<string, unknown> = {
       atualizadoEm: Timestamp.now(),
     };
@@ -210,6 +391,10 @@ export const documentacoesService = {
   },
 
   async delete(id: string): Promise<void> {
+    if (id.startsWith("local-")) {
+      removeLocalDocumento(id);
+      return;
+    }
     await deleteDoc(doc(documentosCollection, id));
   },
 

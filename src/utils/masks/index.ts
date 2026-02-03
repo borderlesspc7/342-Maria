@@ -122,6 +122,15 @@ export const unmaskCNPJ = (value: string): string => {
 };
 
 /**
+ * Máscara CPF ou CNPJ conforme quantidade de dígitos (até 11 = CPF, 12+ = CNPJ)
+ */
+export const maskCPFOrCNPJ = (value: string): string => {
+  const cleaned = value.replace(/\D/g, '');
+  if (cleaned.length <= 11) return maskCPF(value);
+  return maskCNPJ(value);
+};
+
+/**
  * Remove a máscara de telefone
  */
 export const unmaskPhone = (value: string): string => {

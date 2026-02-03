@@ -9,8 +9,7 @@ import {
   HiChartBar,
   HiCurrencyDollar,
   HiBell,
-  HiChevronLeft,
-  HiChevronRight,
+  HiMenu,
 } from "react-icons/hi";
 import "./Sidebar.css";
 
@@ -77,8 +76,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="logo-icon">RH</div>
-          {!collapsed && <span className="logo-text">Sistema RH</span>}
+          <button
+            className="sidebar-menu-button"
+            onClick={onToggle}
+            aria-label="Toggle sidebar"
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            <HiMenu className="menu-icon" />
+          </button>
+          {!collapsed && (
+            <span className="sidebar-header-text">Sidebar</span>
+          )}
         </div>
       </div>
 
@@ -104,14 +112,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           })}
         </ul>
       </nav>
-
-      <button
-        className="sidebar-toggle"
-        onClick={onToggle}
-        aria-label="Toggle sidebar"
-      >
-        {collapsed ? <HiChevronRight /> : <HiChevronLeft />}
-      </button>
     </aside>
   );
 };

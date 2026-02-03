@@ -8,6 +8,10 @@ import {
   HiTrash,
   HiCog,
   HiInformationCircle,
+  HiDocumentText,
+  HiStar,
+  HiChartBar,
+  HiMail,
 } from "react-icons/hi";
 import { useNotificationContext } from "../../contexts/NotificationContext";
 import { notificacaoService } from "../../services/notificacaoService";
@@ -18,11 +22,13 @@ import type {
   ConfiguracaoNotificacao,
 } from "../../types/notificacao";
 import { Layout } from "../../components/Layout";
+import { useToast } from "../../contexts/ToastContext";
 import "./Notificacoes.css";
 
 const Notificacoes: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const {
     notificacoes,
     naoLidas,
@@ -94,14 +100,14 @@ const Notificacoes: React.FC = () => {
     switch (tipo) {
       case "documento_vencido":
       case "documento_vencendo":
-        return "📄";
+        return <HiDocumentText className="notification-icon-svg" />;
       case "premio_lancado":
-        return "🏆";
+        return <HiStar className="notification-icon-svg" />;
       case "boletim_pendente":
       case "boletim_vencendo":
-        return "📊";
+        return <HiChartBar className="notification-icon-svg" />;
       default:
-        return "🔔";
+        return <HiBell className="notification-icon-svg" />;
     }
   };
 
@@ -163,11 +169,11 @@ const Notificacoes: React.FC = () => {
         diasAntesVencimento: configuracoes.diasAntesVencimento,
         horaVerificacao: configuracoes.horaVerificacao,
       });
-      alert("Configurações salvas com sucesso!");
+      showToast("Configurações salvas com sucesso!");
       setMostrarConfiguracoes(false);
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
-      alert("Erro ao salvar configurações");
+      showToast("Erro ao salvar configurações", "error");
     }
   };
 
@@ -503,7 +509,9 @@ const Notificacoes: React.FC = () => {
                       {formatarTempo(notificacao.criadoEm)}
                     </span>
                     {notificacao.emailEnviado && (
-                      <span className="email-sent">✉️ E-mail enviado</span>
+                      <span className="email-sent">
+                        <HiMail className="email-icon" /> E-mail enviado
+                      </span>
                     )}
                   </div>
                 </div>

@@ -19,8 +19,10 @@ import {
   HiTrendingDown,
 } from "react-icons/hi";
 import { financeiroService } from "../../services/financeiroService";
+import { colaboradorService } from "../../services/colaboradorService";
 import { useAuth } from "../../hooks/useAuth";
-import { mockColaboradores } from "../../types/premioProdutividade";
+import { useToast } from "../../contexts/ToastContext";
+import type { Colaborador } from "../../types/premioProdutividade";
 import type {
   Transacao,
   TransacaoFilters,
@@ -70,6 +72,7 @@ const formasPagamento: FormaPagamento[] = [
 const Financeiro: React.FC = () => {
   const { user } = useAuth();
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
   const [stats, setStats] = useState<FinanceiroStats>({
     totalPendente: 0,
     totalAprovado: 0,
@@ -117,6 +120,10 @@ const Financeiro: React.FC = () => {
     loadStats();
   }, [loadTransacoes, loadStats]);
 
+  useEffect(() => {
+    colaboradorService.list().then(setColaboradoresList).catch(console.error);
+  }, []);
+
   const handleFilterChange = (key: keyof TransacaoFilters, value: unknown) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -145,15 +152,17 @@ const Financeiro: React.FC = () => {
     try {
       if (editingTransacao) {
         await financeiroService.update(editingTransacao.id, formData);
+        showToast("Transação atualizada com sucesso!");
       } else {
         await financeiroService.create(formData, user?.uid || "");
+        showToast("Transação salva com sucesso!");
       }
       handleCloseModal();
       loadTransacoes();
       loadStats();
     } catch (error) {
       console.error("Erro ao salvar transação:", error);
-      alert("Não foi possível salvar a transação.");
+      showToast("Não foi possível salvar a transação.", "error");
     }
   };
 
@@ -186,11 +195,12 @@ const Financeiro: React.FC = () => {
         observacoes
       );
       handleCloseStatusModal();
+      showToast("Status atualizado com sucesso!");
       loadTransacoes();
       loadStats();
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Não foi possível atualizar o status.");
+      showToast("Não foi possível atualizar o status.", "error");
     }
   };
 
@@ -571,12 +581,14 @@ const Financeiro: React.FC = () => {
 
 interface TransacaoModalProps {
   transacao: Transacao | null;
+  colaboradoresList: Colaborador[];
   onClose: () => void;
   onSave: (data: TransacaoFormData) => void;
 }
 
 const TransacaoModal: React.FC<TransacaoModalProps> = ({
   transacao,
+  colaboradoresList,
   onClose,
   onSave,
 }) => {
@@ -601,6 +613,11 @@ const TransacaoModal: React.FC<TransacaoModalProps> = ({
     >
   ) => {
     const { name, value } = e.target;
+    if (name === "valor") {
+      const num = parseFloat(value) || 0;
+      setFormData((prev) => ({ ...prev, [name]: num }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -612,7 +629,7 @@ const TransacaoModal: React.FC<TransacaoModalProps> = ({
   };
 
   const handleColaboradorChange = (colaboradorId: string) => {
-    const colaborador = mockColaboradores.find((c) => c.id === colaboradorId);
+    const colaborador = colaboradoresList.find((c) => c.id === colaboradorId);
     if (colaborador) {
       setFormData((prev) => ({
         ...prev,
@@ -651,7 +668,7 @@ const TransacaoModal: React.FC<TransacaoModalProps> = ({
               required
             >
               <option value="">Selecione...</option>
-              {mockColaboradores.map((colab) => (
+              {colaboradoresList.map((colab) => (
                 <option key={colab.id} value={colab.id}>
                   {colab.nome}
                 </option>

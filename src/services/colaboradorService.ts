@@ -17,6 +17,11 @@ import type { Colaborador } from "../types/premioProdutividade";
 
 const LOCAL_STORAGE_KEY = "colaboradores_local";
 const CREATE_TIMEOUT_MS = 3000;
+const LIST_TIMEOUT_MS = 10000;
+
+function normalizeCpf(cpf: string): string {
+  return (cpf || "").replace(/\D/g, "");
+}
 
 function getColaboradoresCollection() {
   return collection(db, "colaboradores");
@@ -66,10 +71,13 @@ function getLocalColaboradores(): Colaborador[] {
 
 function saveLocalColaborador(colab: Colaborador): void {
   const list = getLocalColaboradores();
+  const colabCpf = normalizeCpf(colab.cpf);
   const index = list.findIndex((c) => c.id === colab.id);
   if (index >= 0) {
     list[index] = colab;
   } else {
+    const sameCpfIndex = list.findIndex((c) => normalizeCpf(c.cpf) === colabCpf);
+    if (sameCpfIndex >= 0) list.splice(sameCpfIndex, 1);
     list.push(colab);
   }
   const toSave = list.map((c) => ({
@@ -113,6 +121,11 @@ export interface ColaboradorFormData {
   admissao?: Date;
 }
 
+export interface CreateColaboradorResult {
+  id: string;
+  savedLocally?: boolean;
+}
+
 export const colaboradorService = {
   async list(nomeBusca?: string): Promise<Colaborador[]> {
     let list: Colaborador[] = [];
@@ -122,21 +135,50 @@ export const colaboradorService = {
           getColaboradoresCollection(),
           orderBy("nome", "asc")
         );
-        const snapshot = await getDocs(q);
-        list = snapshot.docs.map(mapSnapshotToColaborador);
+        const fetchList = (): Promise<Colaborador[]> =>
+          getDocs(q).then((snapshot) =>
+            snapshot.docs.map(mapSnapshotToColaborador)
+          );
+        const timeoutList = (): Promise<Colaborador[]> =>
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("list_timeout")),
+              LIST_TIMEOUT_MS
+            )
+          );
+        list = await Promise.race([fetchList(), timeoutList()]);
       } catch {
         list = [];
       }
     }
     const local = getLocalColaboradores();
+    const firebaseCpfs = new Set(list.map((c) => normalizeCpf(c.cpf)));
     const merged = [...list];
     for (const c of local) {
-      if (!merged.some((m) => m.id === c.id)) merged.push(c);
+      const cpfNorm = normalizeCpf(c.cpf);
+      if (firebaseCpfs.has(cpfNorm)) continue;
+      if (merged.some((m) => m.id === c.id)) continue;
+      if (merged.some((m) => normalizeCpf(m.cpf) === cpfNorm)) continue;
+      merged.push(c);
+      firebaseCpfs.add(cpfNorm);
     }
-    merged.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    const byCpf = new Map<string, Colaborador>();
+    for (const c of merged) {
+      const key = normalizeCpf(c.cpf);
+      const existing = byCpf.get(key);
+      if (!existing) {
+        byCpf.set(key, c);
+      } else if (c.id.startsWith("local-") && !existing.id.startsWith("local-")) {
+        continue;
+      } else {
+        byCpf.set(key, c);
+      }
+    }
+    const deduped = Array.from(byCpf.values());
+    deduped.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     if (nomeBusca?.trim()) {
       const term = nomeBusca.trim().toLowerCase();
-      return merged.filter(
+      return deduped.filter(
         (c) =>
           c.nome.toLowerCase().includes(term) ||
           c.cpf.replace(/\D/g, "").includes(term.replace(/\D/g, "")) ||
@@ -144,7 +186,7 @@ export const colaboradorService = {
           c.setor.toLowerCase().includes(term)
       );
     }
-    return merged;
+    return deduped;
   },
 
   async getById(id: string): Promise<Colaborador | null> {
@@ -155,7 +197,7 @@ export const colaboradorService = {
     return mapSnapshotToColaborador(snap as QueryDocumentSnapshot<DocumentData>);
   },
 
-  async create(data: ColaboradorFormData): Promise<string> {
+  async create(data: ColaboradorFormData): Promise<CreateColaboradorResult> {
     const newColab: Colaborador = {
       id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       nome: data.nome.trim(),
@@ -169,7 +211,7 @@ export const colaboradorService = {
     // Sem Firebase configurado: salva só no localStorage e retorna na hora
     if (!isFirebaseConfigured()) {
       saveLocalColaborador(newColab);
-      return newColab.id;
+      return { id: newColab.id, savedLocally: true };
     }
 
     const firestoreCreate = (): Promise<string> => {
@@ -191,10 +233,17 @@ export const colaboradorService = {
         firestoreCreate(),
         timeoutPromise<string>(CREATE_TIMEOUT_MS, "timeout"),
       ]);
-      return id;
-    } catch (_err) {
+      return { id };
+    } catch (err) {
+      const isTimeout = err instanceof Error && err.message === "timeout";
+      // Timeout ou rede: salva localmente para não perder dados
+      if (isTimeout) {
+        saveLocalColaborador(newColab);
+        return { id: newColab.id, savedLocally: true };
+      }
+      // Outros erros (ex.: permissão): fallback local para não perder dados
       saveLocalColaborador(newColab);
-      return newColab.id;
+      return { id: newColab.id, savedLocally: true };
     }
   },
 

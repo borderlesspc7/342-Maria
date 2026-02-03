@@ -39,7 +39,7 @@
 }
 
 .lancamentos-primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
@@ -51,13 +51,13 @@
 
 .lancamentos-secondary-btn {
   background: white;
-  color: #667eea;
+  color: #3b82f6;
   border: 2px solid #e2e8f0;
 }
 
 .lancamentos-secondary-btn:hover {
   background: #f7fafc;
-  border-color: #667eea;
+  border-color: #3b82f6;
 }
 
 .lancamentos-filtros {
@@ -93,8 +93,8 @@
 
 .lancamentos-filter-btn:hover {
   background: #edf2f7;
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #3b82f6;
+  color: #3b82f6;
 }
 
 .lancamentos-search {
@@ -123,7 +123,7 @@
 
 .lancamentos-search input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -163,7 +163,7 @@
 .lancamentos-filter-group input:focus,
 .lancamentos-filter-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -171,6 +171,8 @@
   background: white;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e2e8f0;
   overflow: hidden;
 }
@@ -190,6 +192,7 @@
 
 .lancamentos-table {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
 }
 
@@ -300,7 +303,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #667eea;
+  color: #3b82f6;
   font-size: 14px;
 }
 
@@ -330,7 +333,7 @@
 
 .lancamentos-action-btn:hover {
   background: #edf2f7;
-  color: #667eea;
+  color: #3b82f6;
 }
 
 .lancamentos-action-btn.success:hover {
@@ -460,7 +463,7 @@
 .lancamentos-modal-group select:focus,
 .lancamentos-modal-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -496,8 +499,8 @@
 
 .lancamentos-file-upload-label:hover {
   background: #edf2f7;
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #3b82f6;
+  color: #3b82f6;
 }
 
 .lancamentos-file-list {
@@ -518,7 +521,7 @@
 }
 
 .lancamentos-file-item svg {
-  color: #667eea;
+  color: #3b82f6;
   font-size: 18px;
 }
 
@@ -555,24 +558,104 @@
 }
 
 @media (max-width: 768px) {
+  .lancamentos-container {
+    min-width: 0;
+  }
+
   .lancamentos-header {
     flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+
+  .lancamentos-title {
+    font-size: 22px;
+  }
+
+  .lancamentos-subtitle {
+    font-size: 14px;
+  }
+
+  .lancamentos-primary-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .lancamentos-filtros {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .lancamentos-filtros-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .lancamentos-search {
+    min-width: 0;
+    width: 100%;
   }
 
   .lancamentos-filtros-panel {
     grid-template-columns: 1fr;
   }
 
-  .lancamentos-modal-row {
-    grid-template-columns: 1fr;
+  .lancamentos-table-container {
+    border-radius: 12px;
+    margin: 0 -2px;
   }
 
   .lancamentos-table {
     font-size: 12px;
+    min-width: 700px;
   }
 
   .lancamentos-table th,
   .lancamentos-table td {
-    padding: 12px 8px;
+    padding: 10px 8px;
+  }
+
+  .lancamentos-modal-overlay {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .lancamentos-modal {
+    max-width: 100%;
+    max-height: none;
+    margin: auto 0;
+  }
+
+  .lancamentos-modal-header {
+    padding: 16px;
+  }
+
+  .lancamentos-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .lancamentos-modal-form {
+    padding: 16px;
+  }
+
+  .lancamentos-modal-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .lancamentos-modal-actions {
+    flex-wrap: wrap;
+    padding-top: 16px;
+    margin-top: 16px;
+    gap: 10px;
+  }
+
+  .lancamentos-modal-actions .lancamentos-primary-btn,
+  .lancamentos-modal-actions .lancamentos-secondary-btn {
+    flex: 1;
+    min-width: 120px;
   }
 }

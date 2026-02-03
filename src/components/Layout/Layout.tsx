@@ -9,8 +9,16 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const getInitialCollapsed = () => {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth <= 768;
+};
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialCollapsed);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 768
+  );
   const location = useLocation();
 
   const toggleSidebar = () => {
@@ -23,7 +31,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth <= 768) {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) {
         setSidebarCollapsed(true);
       }
     };
@@ -33,9 +43,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const showSidebarOverlay = isMobile && !sidebarCollapsed;
+
   return (
     <div className="layout">
       <NotificationInitializer />
+      {showSidebarOverlay && (
+        <div
+          className="sidebar-overlay"
+          onClick={toggleSidebar}
+          onKeyDown={(e) => e.key === 'Escape' && toggleSidebar()}
+          role="button"
+          tabIndex={0}
+          aria-label="Fechar menu"
+        />
+      )}
       <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <div className={`layout-main ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Header onMenuClick={toggleSidebar} collapsed={sidebarCollapsed} />

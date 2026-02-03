@@ -23,6 +23,7 @@ import type {
 } from "../../types/premioProdutividade";
 import type { Colaborador } from "../../types/premioProdutividade";
 import { maskCPF, unmaskCPF } from "../../utils/masks";
+import { useToast } from "../../contexts/ToastContext";
 import "./PremiosProdutividade.css";
 
 const generateTempId = () => {
@@ -57,6 +58,7 @@ const meses = [
 const statusOptions: PremioStatus[] = ["Pendente", "Em revisão", "Aprovado"];
 
 const PremiosProdutividade: React.FC = () => {
+  const { showToast } = useToast();
   const hoje = new Date();
   const [premios, setPremios] = useState<PremioProdutividade[]>([]);
   const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
@@ -92,7 +94,7 @@ const PremiosProdutividade: React.FC = () => {
       setPremios(data);
     } catch (error) {
       console.error("Erro ao carregar prêmios:", error);
-      alert("Não foi possível carregar os prêmios de produtividade.");
+      showToast("Não foi possível carregar os prêmios de produtividade.", "error");
     } finally {
       setLoading(false);
     }
@@ -154,6 +156,7 @@ const PremiosProdutividade: React.FC = () => {
   ): Promise<void> => {
     try {
       await premioProdutividadeService.updateStatus(premioId, status, "admin");
+      showToast("Status do prêmio atualizado com sucesso!");
       await loadPremios();
       if (selectedColaborador) {
         await loadHistorico(selectedColaborador);
@@ -163,7 +166,7 @@ const PremiosProdutividade: React.FC = () => {
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Falha ao atualizar status do prêmio.");
+      showToast("Falha ao atualizar status do prêmio.", "error");
     }
   };
 
@@ -171,6 +174,7 @@ const PremiosProdutividade: React.FC = () => {
     if (!window.confirm("Deseja remover este prêmio?")) return;
     try {
       await premioProdutividadeService.delete(id);
+      showToast("Prêmio removido com sucesso!");
       await loadPremios();
       if (selectedColaborador) {
         await loadHistorico(selectedColaborador);
@@ -180,7 +184,7 @@ const PremiosProdutividade: React.FC = () => {
       }
     } catch (error) {
       console.error("Erro ao excluir prêmio:", error);
-      alert("Não foi possível remover o prêmio.");
+      showToast("Não foi possível remover o prêmio.", "error");
     }
   };
 
@@ -221,9 +225,10 @@ const PremiosProdutividade: React.FC = () => {
       ).padStart(2, "0")}.csv`;
       link.click();
       URL.revokeObjectURL(url);
+      showToast("Planilha exportada com sucesso!");
     } catch (error) {
       console.error("Erro ao exportar relatório:", error);
-      alert("Não foi possível exportar a planilha.");
+      showToast("Não foi possível exportar a planilha.", "error");
     } finally {
       setExportLoading(false);
     }
@@ -626,6 +631,7 @@ const PremioModal: React.FC<PremioModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { showToast } = useToast();
   const defaultColaborador = premio
     ? null
     : colaboradoresList.length > 0

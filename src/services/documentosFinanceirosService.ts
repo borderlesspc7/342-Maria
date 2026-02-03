@@ -33,6 +33,86 @@ import type {
 const NOTAS_FISCAIS_COLLECTION = "notas_fiscais";
 const COMPROVANTES_COLLECTION = "comprovantes_bancarios";
 const STORAGE_PATH = "documentos_financeiros";
+const LOCAL_NOTAS_KEY = "documentos_financeiros_notas_local";
+const LOCAL_COMPROVANTES_KEY = "documentos_financeiros_comprovantes_local";
+const CREATE_TIMEOUT_MS = 20000;
+const LIST_TIMEOUT_MS = 10000;
+
+function isFirebaseConfigured(): boolean {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  return typeof projectId === "string" && projectId.trim().length > 0;
+}
+
+function timeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(message)), ms)
+  );
+}
+
+function getLocalNotasFiscais(): NotaFiscal[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_NOTAS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+    return parsed.map((n) => ({
+      ...n,
+      dataEmissao: n.dataEmissao ? new Date(n.dataEmissao as string) : new Date(),
+      dataVencimento: n.dataVencimento ? new Date(n.dataVencimento as string) : undefined,
+      criadoEm: n.criadoEm ? new Date(n.criadoEm as string) : new Date(),
+      atualizadoEm: n.atualizadoEm ? new Date(n.atualizadoEm as string) : new Date(),
+      arquivo: {
+        ...(n.arquivo as object),
+        dataUpload: n.arquivo && (n.arquivo as Record<string, unknown>).dataUpload
+          ? new Date((n.arquivo as Record<string, unknown>).dataUpload as string)
+          : new Date(),
+      },
+    })) as NotaFiscal[];
+  } catch {
+    return [];
+  }
+}
+
+function serializeNota(n: NotaFiscal): Record<string, unknown> {
+  return {
+    ...n,
+    dataEmissao: n.dataEmissao?.toISOString?.() ?? null,
+    dataVencimento: n.dataVencimento?.toISOString?.() ?? null,
+    criadoEm: n.criadoEm?.toISOString?.() ?? null,
+    atualizadoEm: n.atualizadoEm?.toISOString?.() ?? null,
+    arquivo: n.arquivo
+      ? { ...n.arquivo, dataUpload: n.arquivo.dataUpload?.toISOString?.() ?? null }
+      : null,
+  };
+}
+
+function saveLocalNotaFiscal(nota: NotaFiscal): void {
+  const list = getLocalNotasFiscais();
+  const idx = list.findIndex((n) => n.id === nota.id);
+  if (idx >= 0) {
+    list[idx] = nota;
+  } else {
+    list.push(nota);
+  }
+  localStorage.setItem(
+    LOCAL_NOTAS_KEY,
+    JSON.stringify(list.map(serializeNota))
+  );
+}
+
+function removeLocalNotaFiscal(id: string): void {
+  const list = getLocalNotasFiscais().filter((n) => n.id !== id);
+  const serialized = list.map((n) => ({
+    ...n,
+    dataEmissao: n.dataEmissao?.toISOString?.() ?? null,
+    dataVencimento: n.dataVencimento?.toISOString?.() ?? null,
+    criadoEm: n.criadoEm?.toISOString?.() ?? null,
+    atualizadoEm: n.atualizadoEm?.toISOString?.() ?? null,
+    arquivo: n.arquivo
+      ? { ...n.arquivo, dataUpload: n.arquivo.dataUpload?.toISOString?.() ?? null }
+      : null,
+  }));
+  localStorage.setItem(LOCAL_NOTAS_KEY, JSON.stringify(serialized));
+}
 
 // Converter Timestamp para Date
 function convertTimestampToDate(data: DocumentData): DocumentData {
@@ -94,37 +174,125 @@ export const documentosFinanceirosService = {
     data: NotaFiscalFormData,
     userId: string
   ): Promise<NotaFiscal> {
-    try {
-      // Upload do arquivo
-      const arquivo = await uploadArquivo(data.arquivo, userId, "nota_fiscal");
+    const now = new Date();
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
+    const buildLocalNota = (arquivo: NotaFiscal["arquivo"]): NotaFiscal => {
+      const nota: NotaFiscal = {
+        id: localId,
+        numero: data.numero,
+        serie: data.serie,
+        fornecedor: data.fornecedor,
+        cnpjFornecedor: data.cnpjFornecedor,
+        valor: data.valor,
+        dataEmissao: data.dataEmissao,
+        dataVencimento: data.dataVencimento,
+        tipo: data.tipo,
+        categoria: data.categoria,
+        descricao: data.descricao,
+        arquivo,
+        status: "pendente",
+        criadoPor: userId,
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+      return nota;
+    };
+
+    if (!isFirebaseConfigured()) {
+      const nota = buildLocalNota({
+        id: localId,
+        nome: data.arquivo.name,
+        url: "",
+        tamanho: data.arquivo.size,
+        tipo: data.arquivo.type,
+        dataUpload: now,
+      });
+      saveLocalNotaFiscal(nota);
+      return nota;
+    }
+
+    const doCreate = async (): Promise<NotaFiscal> => {
+      const arquivo = await uploadArquivo(data.arquivo, userId, "nota_fiscal");
       const notaFiscalData = {
         ...data,
-        arquivo,
+        arquivo: {
+          ...arquivo,
+          dataUpload: arquivo.dataUpload,
+        },
         status: "pendente" as const,
         criadoPor: userId,
-        criadoEm: new Date(),
-        atualizadoEm: new Date(),
+        criadoEm: now,
+        atualizadoEm: now,
       };
-
       const docRef = await addDoc(
         collection(db, NOTAS_FISCAIS_COLLECTION),
         notaFiscalData
       );
+      return { id: docRef.id, ...notaFiscalData } as NotaFiscal;
+    };
 
-      return {
-        id: docRef.id,
-        ...notaFiscalData,
-      } as NotaFiscal;
+    try {
+      const nota = await Promise.race([
+        doCreate(),
+        timeoutPromise<NotaFiscal>(CREATE_TIMEOUT_MS, "timeout"),
+      ]);
+      return nota;
     } catch (error) {
       console.error("Erro ao criar nota fiscal:", error);
-      throw new Error("Erro ao criar nota fiscal");
+      const nota = buildLocalNota({
+        id: localId,
+        nome: data.arquivo.name,
+        url: "",
+        tamanho: data.arquivo.size,
+        tipo: data.arquivo.type,
+        dataUpload: now,
+      });
+      saveLocalNotaFiscal(nota);
+      return nota;
     }
   },
 
   async listarNotasFiscais(
     filters?: DocumentoFinanceiroFilters
   ): Promise<NotaFiscal[]> {
+    const applyFilters = (notas: NotaFiscal[]): NotaFiscal[] => {
+      let result = notas;
+      if (filters?.valorMin) {
+        result = result.filter((n) => n.valor >= filters!.valorMin!);
+      }
+      if (filters?.valorMax) {
+        result = result.filter((n) => n.valor <= filters!.valorMax!);
+      }
+      if (filters?.busca) {
+        const buscaLower = filters.busca!.toLowerCase();
+        result = result.filter(
+          (n) =>
+            n.numero.toLowerCase().includes(buscaLower) ||
+            n.fornecedor.toLowerCase().includes(buscaLower) ||
+            (n.descricao && n.descricao.toLowerCase().includes(buscaLower))
+        );
+      }
+      if (filters?.status) {
+        result = result.filter((n) => n.status === filters!.status);
+      }
+      if (filters?.dataInicio) {
+        result = result.filter(
+          (n) => n.dataEmissao >= (filters!.dataInicio as Date)
+        );
+      }
+      if (filters?.dataFim) {
+        result = result.filter(
+          (n) => n.dataEmissao <= (filters!.dataFim as Date)
+        );
+      }
+      return result;
+    };
+
+    if (!isFirebaseConfigured()) {
+      return applyFilters(getLocalNotasFiscais());
+    }
+
     try {
       let q = query(
         collection(db, NOTAS_FISCAIS_COLLECTION),
@@ -136,45 +304,40 @@ export const documentosFinanceirosService = {
       }
 
       if (filters?.dataInicio) {
-        q = query(q, where("dataEmissao", ">=", filters.dataInicio));
+        q = query(q, where("dataEmissao", ">=", Timestamp.fromDate(filters.dataInicio)));
       }
 
       if (filters?.dataFim) {
-        q = query(q, where("dataEmissao", "<=", filters.dataFim));
+        q = query(q, where("dataEmissao", "<=", Timestamp.fromDate(filters.dataFim)));
       }
 
-      const snapshot = await getDocs(q);
-      let notas = snapshot.docs.map((doc) => {
-        const data = convertTimestampToDate(doc.data());
-        return {
-          id: doc.id,
-          ...data,
-        } as NotaFiscal;
-      });
-
-      // Filtros adicionais
-      if (filters?.valorMin) {
-        notas = notas.filter((n) => n.valor >= filters.valorMin!);
-      }
-
-      if (filters?.valorMax) {
-        notas = notas.filter((n) => n.valor <= filters.valorMax!);
-      }
-
-      if (filters?.busca) {
-        const buscaLower = filters.busca.toLowerCase();
-        notas = notas.filter(
-          (n) =>
-            n.numero.toLowerCase().includes(buscaLower) ||
-            n.fornecedor.toLowerCase().includes(buscaLower) ||
-            n.descricao?.toLowerCase().includes(buscaLower)
+      const fetchNotas = (): Promise<NotaFiscal[]> =>
+        getDocs(q).then((snapshot) =>
+          snapshot.docs.map((d) => {
+            const data = convertTimestampToDate(d.data());
+            return { id: d.id, ...data } as NotaFiscal;
+          })
         );
-      }
 
-      return notas;
+      const notas = await Promise.race([
+        fetchNotas(),
+        timeoutPromise<NotaFiscal[]>(LIST_TIMEOUT_MS, "list_timeout"),
+      ]);
+
+      const local = getLocalNotasFiscais();
+      const merged = [...notas];
+      for (const n of local) {
+        if (!merged.some((m) => m.id === n.id)) merged.push(n);
+      }
+      merged.sort(
+        (a, b) =>
+          new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
+      );
+
+      return applyFilters(merged);
     } catch (error) {
       console.error("Erro ao listar notas fiscais:", error);
-      throw new Error("Erro ao listar notas fiscais");
+      return applyFilters(getLocalNotasFiscais());
     }
   },
 
@@ -195,17 +358,23 @@ export const documentosFinanceirosService = {
   },
 
   async deletarNotaFiscal(id: string): Promise<void> {
+    if (id.startsWith("local-")) {
+      removeLocalNotaFiscal(id);
+      return;
+    }
     try {
       const docRef = doc(db, NOTAS_FISCAIS_COLLECTION, id);
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
         const data = docSnap.data() as NotaFiscal;
-        // Deletar arquivo do storage
         if (data.arquivo?.id) {
-          await deletarArquivo(`${STORAGE_PATH}/${data.arquivo.id}`);
+          try {
+            await deletarArquivo(`${STORAGE_PATH}/${data.arquivo.id}`);
+          } catch {
+            // segue mesmo se falhar o delete do storage
+          }
         }
-        // Deletar documento
         await deleteDoc(docRef);
       }
     } catch (error) {
