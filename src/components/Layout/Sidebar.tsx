@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import {
   HiHome,
   HiUserGroup,
@@ -10,6 +11,7 @@ import {
   HiCurrencyDollar,
   HiBell,
   HiMenu,
+  HiShieldCheck,
 } from "react-icons/hi";
 import "./Sidebar.css";
 
@@ -19,6 +21,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+  const { user } = useAuth();
   const menuItems = [
     {
       path: "/dashboard",
@@ -31,24 +34,34 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       label: "Notificações",
     },
     {
+      path: "/administracao",
+      icon: HiShieldCheck,
+      label: "Administração",
+      roles: ["admin"],
+    },
+    {
       path: "/colaboradores",
       icon: HiUserGroup,
       label: "Colaboradores",
+      roles: ["admin", "gestor"],
     },
     {
       path: "/premios-produtividade",
       icon: HiTrendingUp,
       label: "Prêmio de Produtividade",
+      roles: ["admin", "gestor"],
     },
     {
       path: "/boletins-medicao",
       icon: HiDocumentText,
       label: "Boletins de Medição",
+      roles: ["admin", "gestor"],
     },
     {
       path: "/documentacoes",
       icon: HiFolder,
       label: "Documentações e Integrações",
+      roles: ["admin", "gestor"],
     },
     {
       path: "/caderno-virtual",
@@ -59,16 +72,19 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       path: "/financeiro",
       icon: HiCurrencyDollar,
       label: "Gestão Financeira",
+      roles: ["admin"],
     },
     {
       path: "/relatorios",
       icon: HiChartBar,
       label: "Relatórios",
+      roles: ["admin", "gestor"],
     },
     {
       path: "/documentos-financeiros",
       icon: HiDocumentText,
       label: "Documentos Financeiros",
+      roles: ["admin", "gestor"],
     },
   ];
 
@@ -92,7 +108,13 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 
       <nav className="sidebar-nav">
         <ul className="nav-list">
-          {menuItems.map((item) => {
+          {menuItems
+            .filter((item) => {
+              if (!item.roles || item.roles.length === 0) return true;
+              if (!user?.role) return false;
+              return item.roles.includes(user.role);
+            })
+            .map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.path} className="nav-item">

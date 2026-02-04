@@ -39,18 +39,40 @@ const firebaseAuthService = {
       );
 
       const firebaseUser = userCredentials.user;
-      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
 
+      // Se o documento não existe, cria automaticamente com dados básicos
       if (!userDoc.exists()) {
-        throw new Error("Usuário não encontrado");
+        const newUserData: User = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuário",
+          email: firebaseUser.email || credentials.email,
+          password: "", // Não armazenamos senha no Firestore
+          role: "colaborador", // Role padrão
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await setDoc(userDocRef, {
+          ...newUserData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        return newUserData;
       }
 
       const userData = userDoc.data() as User;
 
-      await setDoc(doc(db, "users", firebaseUser.uid), {
-        ...userData,
-        updatedAt: new Date(),
-      });
+      // Atualiza apenas o updatedAt
+      await setDoc(
+        userDocRef,
+        {
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
 
       return userData;
     } catch (error) {
@@ -73,12 +95,17 @@ const firebaseAuthService = {
         uid: firebaseUser.uid,
         name: credentials.name,
         email: credentials.email,
-        role: credentials.role || "user",
+        password: "", // Não armazenamos senha no Firestore
+        role: credentials.role || "colaborador",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+      await setDoc(doc(db, "users", firebaseUser.uid), {
+        ...newUser,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       return newUser;
     } catch (error) {
       const message = getFirebaseErrorMessage(error as string | FirebaseError);
@@ -93,8 +120,37 @@ const firebaseAuthService = {
         return;
       }
 
-      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-      callback(userDoc.exists() ? (userDoc.data() as User) : null);
+      try {
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        // Se o documento não existe, cria automaticamente
+        if (!userDoc.exists()) {
+          const newUserData: User = {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuário",
+            email: firebaseUser.email || "",
+            password: "",
+            role: "colaborador",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          await setDoc(userDocRef, {
+            ...newUserData,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+
+          callback(newUserData);
+          return;
+        }
+
+        callback(userDoc.data() as User);
+      } catch (error) {
+        console.error("Erro ao buscar usuário no Firestore:", error);
+        callback(null);
+      }
     });
   },
 

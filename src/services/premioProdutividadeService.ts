@@ -54,6 +54,7 @@ const mapSnapshotToPremio = (
 const buildFiltersQuery = (filters?: PremioFilters) => {
   const constraints: QueryConstraint[] = [];
 
+  // Aplica filtros na ordem correta para evitar problemas de índice
   if (filters?.ano) {
     constraints.push(where("anoReferencia", "==", filters.ano));
   }
@@ -76,6 +77,7 @@ const buildFiltersQuery = (filters?: PremioFilters) => {
     );
   }
 
+  // OrderBy sempre por último
   constraints.push(orderBy("dataPremio", "desc"));
 
   return query(premiosCollection, ...constraints);
@@ -83,29 +85,108 @@ const buildFiltersQuery = (filters?: PremioFilters) => {
 
 export const premioProdutividadeService = {
   async list(filters?: PremioFilters): Promise<PremioProdutividade[]> {
-    const q = buildFiltersQuery(filters);
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(mapSnapshotToPremio);
+    try {
+      const q = buildFiltersQuery(filters);
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(mapSnapshotToPremio);
+    } catch (error: any) {
+      // Se houver erro de índice faltando, tenta query mais simples
+      if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+        console.warn("Índice composto não encontrado, usando query simplificada:", error);
+        
+        // Tenta query sem orderBy primeiro
+        try {
+          const simpleConstraints: QueryConstraint[] = [];
+          if (filters?.ano) {
+            simpleConstraints.push(where("anoReferencia", "==", filters.ano));
+          }
+          if (filters?.mes) {
+            simpleConstraints.push(where("mesReferencia", "==", filters.mes));
+          }
+          
+          const simpleQuery = query(premiosCollection, ...simpleConstraints);
+          const snapshot = await getDocs(simpleQuery);
+          let results = snapshot.docs.map(mapSnapshotToPremio);
+          
+          // Aplica filtros restantes em memória
+          if (filters?.status) {
+            results = results.filter((p) => p.status === filters.status);
+          }
+          if (filters?.colaboradorNome) {
+            const searchTerm = filters.colaboradorNome.toLowerCase();
+            results = results.filter((p) =>
+              p.colaboradorNome.toLowerCase().includes(searchTerm)
+            );
+          }
+          
+          // Ordena em memória
+          results.sort((a, b) => b.dataPremio.getTime() - a.dataPremio.getTime());
+          
+          return results;
+        } catch (fallbackError) {
+          console.error("Erro na query simplificada:", fallbackError);
+          // Se ainda falhar, retorna lista vazia ou tenta sem filtros
+          if (filters && (filters.ano || filters.mes || filters.status || filters.colaboradorNome)) {
+            // Última tentativa: sem filtros
+            const snapshot = await getDocs(query(premiosCollection, orderBy("dataPremio", "desc")));
+            let results = snapshot.docs.map(mapSnapshotToPremio);
+            
+            // Aplica todos os filtros em memória
+            if (filters.ano) {
+              results = results.filter((p) => p.anoReferencia === filters.ano);
+            }
+            if (filters.mes) {
+              results = results.filter((p) => p.mesReferencia === filters.mes);
+            }
+            if (filters.status) {
+              results = results.filter((p) => p.status === filters.status);
+            }
+            if (filters.colaboradorNome) {
+              const searchTerm = filters.colaboradorNome.toLowerCase();
+              results = results.filter((p) =>
+                p.colaboradorNome.toLowerCase().includes(searchTerm)
+              );
+            }
+            
+            return results;
+          }
+          throw fallbackError;
+        }
+      }
+      throw error;
+    }
   },
 
   async create(data: PremioFormData): Promise<string> {
-    const payload = {
-      ...data,
-      valor: Number(data.valor),
-      mesReferencia: data.dataPremio.getMonth() + 1,
-      anoReferencia: data.dataPremio.getFullYear(),
-      dataPremio: Timestamp.fromDate(data.dataPremio),
-      status: data.status,
-      colaboradorNomeSearch: data.colaboradorNome
-        .toLowerCase()
-        .split(" ")
-        .filter(Boolean),
-      criadoEm: Timestamp.now(),
-      atualizadoEm: Timestamp.now(),
-    };
+    try {
+      const payload = {
+        ...data,
+        valor: Number(data.valor),
+        mesReferencia: data.dataPremio.getMonth() + 1,
+        anoReferencia: data.dataPremio.getFullYear(),
+        dataPremio: Timestamp.fromDate(data.dataPremio),
+        status: data.status || "Pendente",
+        colaboradorNomeSearch: data.colaboradorNome
+          .toLowerCase()
+          .split(" ")
+          .filter(Boolean),
+        criadoEm: Timestamp.now(),
+        atualizadoEm: Timestamp.now(),
+      };
 
-    const docRef = await addDoc(premiosCollection, payload);
-    return docRef.id;
+      const docRef = await addDoc(premiosCollection, payload);
+      return docRef.id;
+    } catch (error: any) {
+      console.error("Erro ao criar prêmio:", error);
+      if (error?.code === "permission-denied") {
+        throw new Error(
+          "Permissão negada. Verifique as regras de segurança do Firestore."
+        );
+      }
+      throw new Error(
+        error?.message || "Não foi possível criar o prêmio de produtividade."
+      );
+    }
   },
 
   async update(id: string, data: Partial<PremioFormData>): Promise<void> {
@@ -162,34 +243,74 @@ export const premioProdutividadeService = {
   },
 
   async getStats(ano: number, mes: number): Promise<PremioStats> {
-    const q = query(
-      premiosCollection,
-      where("anoReferencia", "==", ano),
-      where("mesReferencia", "==", mes)
-    );
-    const snapshot = await getDocs(q);
-    const entries = snapshot.docs.map(mapSnapshotToPremio);
+    try {
+      const q = query(
+        premiosCollection,
+        where("anoReferencia", "==", ano),
+        where("mesReferencia", "==", mes)
+      );
+      const snapshot = await getDocs(q);
+      const entries = snapshot.docs.map(mapSnapshotToPremio);
 
-    const totalPremiado = entries.reduce(
-      (sum, premio) => sum + premio.valor,
-      0
-    );
-    const pendente = entries
-      .filter((p) => p.status === "Pendente")
-      .reduce((sum, premio) => sum + premio.valor, 0);
-    const emRevisao = entries
-      .filter((p) => p.status === "Em revisão")
-      .reduce((sum, premio) => sum + premio.valor, 0);
-    const aprovados = entries
-      .filter((p) => p.status === "Aprovado")
-      .reduce((sum, premio) => sum + premio.valor, 0);
+      const totalPremiado = entries.reduce(
+        (sum, premio) => sum + premio.valor,
+        0
+      );
+      const pendente = entries
+        .filter((p) => p.status === "Pendente")
+        .reduce((sum, premio) => sum + premio.valor, 0);
+      const emRevisao = entries
+        .filter((p) => p.status === "Em revisão")
+        .reduce((sum, premio) => sum + premio.valor, 0);
+      const aprovados = entries
+        .filter((p) => p.status === "Aprovado")
+        .reduce((sum, premio) => sum + premio.valor, 0);
 
-    return {
-      totalPremiado,
-      pendente,
-      emRevisao,
-      aprovados,
-    };
+      return {
+        totalPremiado,
+        pendente,
+        emRevisao,
+        aprovados,
+      };
+    } catch (error: any) {
+      // Se houver erro de índice, busca todos e filtra em memória
+      if (error?.code === "failed-precondition" || error?.message?.includes("index")) {
+        console.warn("Índice não encontrado para stats, usando fallback");
+        const snapshot = await getDocs(query(premiosCollection));
+        const allEntries = snapshot.docs.map(mapSnapshotToPremio);
+        const entries = allEntries.filter(
+          (p) => p.anoReferencia === ano && p.mesReferencia === mes
+        );
+
+        const totalPremiado = entries.reduce(
+          (sum, premio) => sum + premio.valor,
+          0
+        );
+        const pendente = entries
+          .filter((p) => p.status === "Pendente")
+          .reduce((sum, premio) => sum + premio.valor, 0);
+        const emRevisao = entries
+          .filter((p) => p.status === "Em revisão")
+          .reduce((sum, premio) => sum + premio.valor, 0);
+        const aprovados = entries
+          .filter((p) => p.status === "Aprovado")
+          .reduce((sum, premio) => sum + premio.valor, 0);
+
+        return {
+          totalPremiado,
+          pendente,
+          emRevisao,
+          aprovados,
+        };
+      }
+      console.error("Erro ao carregar estatísticas:", error);
+      return {
+        totalPremiado: 0,
+        pendente: 0,
+        emRevisao: 0,
+        aprovados: 0,
+      };
+    }
   },
 
   async gerarRelatorioMensal(

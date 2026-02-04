@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiUser, HiMail, HiLockClosed, HiEye, HiEyeOff } from "react-icons/hi";
 import { useAuth } from "../../hooks/useAuth";
@@ -7,12 +7,13 @@ import "./Register.css";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { register, loading } = useAuth();
+  const { register, loading, user } = useAuth();
   const [formData, setFormData] = useState<RegisterCredentials>({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    role: "colaborador",
   });
   const [errors, setErrors] = useState<Partial<RegisterCredentials>>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -63,6 +64,10 @@ const Register: React.FC = () => {
       newErrors.confirmPassword = "As senhas não coincidem";
     }
 
+    if (!formData.role) {
+      newErrors.role = "Selecione um papel para o usuário";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -73,9 +78,17 @@ const Register: React.FC = () => {
       email: "",
       password: "",
       confirmPassword: "",
+      role: "colaborador",
     });
     setErrors({});
   };
+
+  // Somente admin pode acessar a tela de cadastro de usuários
+  useEffect(() => {
+    if (!user || user.role !== "admin") {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,6 +100,7 @@ const Register: React.FC = () => {
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
+        role: formData.role,
       });
       navigate("/dashboard");
       clearInput();
@@ -201,6 +215,26 @@ const Register: React.FC = () => {
             </div>
             {errors.confirmPassword && (
               <span className="register-error-message">{errors.confirmPassword}</span>
+            )}
+          </div>
+
+          <div className="register-form-group">
+            <label htmlFor="role">Papel do Usuário</label>
+            <div className="register-input-wrapper">
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className={errors.role ? "error" : ""}
+              >
+                <option value="colaborador">Colaborador</option>
+                <option value="gestor">Gestor</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+            {errors.role && (
+              <span className="register-error-message">{errors.role}</span>
             )}
           </div>
 

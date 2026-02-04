@@ -5,7 +5,8 @@ export interface User {
   password: string;
   createdAt: Date;
   updatedAt: Date;
-  role?: "admin" | "user";
+  /** Papel do usuário no sistema */
+  role?: "admin" | "gestor" | "colaborador";
 }
 
 export interface AuthState {
@@ -21,6 +22,7 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials extends LoginCredentials {
   name: string;
-  role?: "admin" | "user";
+  /** Papel desejado para o novo usuário (definido pelo admin) */
+  role?: "admin" | "gestor" | "colaborador";
   confirmPassword: string;
 }

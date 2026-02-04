@@ -28,6 +28,23 @@ import type {
 const NOTIFICACOES_COLLECTION = "notificacoes";
 const CONFIGURACOES_COLLECTION = "configuracoes_notificacoes";
 
+function isMissingIndexError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  const msg = (e?.message || "").toLowerCase();
+  return (
+    e?.code === "failed-precondition" ||
+    msg.includes("requires an index") ||
+    msg.includes("create it here") ||
+    msg.includes("index")
+  );
+}
+
+function sortByCriadoEmDesc(items: Notificacao[]): Notificacao[] {
+  return [...items].sort(
+    (a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
+  );
+}
+
 // Converter Timestamp do Firebase para Date
 function convertTimestampToDate(data: any): any {
   if (!data) return data;
@@ -174,6 +191,54 @@ export const notificacaoService = {
 
       return filteredNotificacoes;
     } catch (error) {
+      // Fallback sem índice composto: busca por userId e filtra/ordena em memória
+      if (isMissingIndexError(error)) {
+        try {
+          const baseQuery = query(
+            collection(db, NOTIFICACOES_COLLECTION),
+            where("userId", "==", userId)
+          );
+          const snapshot = await getDocs(baseQuery);
+          let notificacoes = snapshot.docs.map((doc) => {
+            const data = convertTimestampToDate(doc.data());
+            return {
+              id: doc.id,
+              ...data,
+            } as Notificacao;
+          });
+
+          if (filters?.tipo) {
+            notificacoes = notificacoes.filter((n) => n.tipo === filters.tipo);
+          }
+          if (filters?.prioridade) {
+            notificacoes = notificacoes.filter(
+              (n) => n.prioridade === filters.prioridade
+            );
+          }
+          if (filters?.lida !== undefined) {
+            notificacoes = notificacoes.filter((n) => n.lida === filters.lida);
+          }
+          if (filters?.dataInicio) {
+            notificacoes = notificacoes.filter(
+              (n) => new Date(n.criadoEm) >= filters.dataInicio!
+            );
+          }
+          if (filters?.dataFim) {
+            notificacoes = notificacoes.filter(
+              (n) => new Date(n.criadoEm) <= filters.dataFim!
+            );
+          }
+
+          notificacoes = sortByCriadoEmDesc(notificacoes);
+          if (limitCount) notificacoes = notificacoes.slice(0, limitCount);
+
+          return notificacoes;
+        } catch (fallbackError) {
+          console.error("Erro ao listar notificações (fallback):", fallbackError);
+          throw new Error("Erro ao listar notificações");
+        }
+      }
+
       console.error("Erro ao listar notificações:", error);
       throw new Error("Erro ao listar notificações");
     }
@@ -194,13 +259,27 @@ export const notificacaoService = {
 
   async marcarTodasComoLidas(userId: string): Promise<void> {
     try {
-      const q = query(
-        collection(db, NOTIFICACOES_COLLECTION),
-        where("userId", "==", userId),
-        where("lida", "==", false)
-      );
+      let snapshot;
+      try {
+        const q = query(
+          collection(db, NOTIFICACOES_COLLECTION),
+          where("userId", "==", userId),
+          where("lida", "==", false)
+        );
+        snapshot = await getDocs(q);
+      } catch (err) {
+        if (!isMissingIndexError(err)) throw err;
+        // Fallback: busca tudo do usuário e filtra em memória
+        const q = query(
+          collection(db, NOTIFICACOES_COLLECTION),
+          where("userId", "==", userId)
+        );
+        const all = await getDocs(q);
+        snapshot = {
+          docs: all.docs.filter((d) => (d.data() as any)?.lida === false),
+        } as unknown as typeof all;
+      }
 
-      const snapshot = await getDocs(q);
       const batch = writeBatch(db);
 
       snapshot.docs.forEach((document) => {
@@ -242,13 +321,27 @@ export const notificacaoService = {
 
   async deletarTodasLidas(userId: string): Promise<void> {
     try {
-      const q = query(
-        collection(db, NOTIFICACOES_COLLECTION),
-        where("userId", "==", userId),
-        where("lida", "==", true)
-      );
+      let snapshot;
+      try {
+        const q = query(
+          collection(db, NOTIFICACOES_COLLECTION),
+          where("userId", "==", userId),
+          where("lida", "==", true)
+        );
+        snapshot = await getDocs(q);
+      } catch (err) {
+        if (!isMissingIndexError(err)) throw err;
+        // Fallback: busca tudo do usuário e filtra em memória
+        const q = query(
+          collection(db, NOTIFICACOES_COLLECTION),
+          where("userId", "==", userId)
+        );
+        const all = await getDocs(q);
+        snapshot = {
+          docs: all.docs.filter((d) => (d.data() as any)?.lida === true),
+        } as unknown as typeof all;
+      }
 
-      const snapshot = await getDocs(q);
       const batch = writeBatch(db);
 
       snapshot.docs.forEach((document) => {
@@ -306,38 +399,56 @@ export const notificacaoService = {
     userId: string,
     callback: (notificacoes: Notificacao[]) => void
   ): Unsubscribe {
+    // Evita índice composto (userId + orderBy): observa por userId e ordena/limita em memória
     const q = query(
       collection(db, NOTIFICACOES_COLLECTION),
-      where("userId", "==", userId),
-      orderBy("criadoEm", "desc"),
-      limit(50)
+      where("userId", "==", userId)
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const notificacoes = snapshot.docs.map((doc) => {
-        const data = convertTimestampToDate(doc.data());
-        return {
-          id: doc.id,
-          ...data,
-        } as Notificacao;
-      });
-      callback(notificacoes);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        let notificacoes = snapshot.docs.map((doc) => {
+          const data = convertTimestampToDate(doc.data());
+          return {
+            id: doc.id,
+            ...data,
+          } as Notificacao;
+        });
+        notificacoes = sortByCriadoEmDesc(notificacoes).slice(0, 50);
+        callback(notificacoes);
+      },
+      (error) => {
+        console.error("Erro ao observar notificações:", error);
+        callback([]);
+      }
+    );
   },
 
   observarNotificacoesNaoLidas(
     userId: string,
     callback: (count: number) => void
   ): Unsubscribe {
+    // Evita índice composto (userId + lida): observa por userId e conta não lidas em memória
     const q = query(
       collection(db, NOTIFICACOES_COLLECTION),
-      where("userId", "==", userId),
-      where("lida", "==", false)
+      where("userId", "==", userId)
     );
 
-    return onSnapshot(q, (snapshot) => {
-      callback(snapshot.size);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const count = snapshot.docs.reduce((acc, d) => {
+          const data = d.data() as any;
+          return acc + (data?.lida === false ? 1 : 0);
+        }, 0);
+        callback(count);
+      },
+      (error) => {
+        console.error("Erro ao observar notificações não lidas:", error);
+        callback(0);
+      }
+    );
   },
 
   // ============== Configurações de Notificação ==============

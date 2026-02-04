@@ -12,8 +12,8 @@ export interface IAuthService {
   changePassword?(currentPassword: string, newPassword: string): Promise<void>; // opcional
 }
 
-// Mudar para true quando quiser usar Firebase
-const USE_FIREBASE = false;
+// ✅ Usa Firebase Auth como backend real de autenticação
+const USE_FIREBASE = true;
 
 // Seleciona o serviço ativo
 export const authService: IAuthService = USE_FIREBASE ? firebase : local;

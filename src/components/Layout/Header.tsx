@@ -231,7 +231,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, collapsed = false }) => {
               <div className="user-info">
                 <span className="user-name">{user?.name || "Usuário"}</span>
                 <span className="user-role">
-                  {user?.role === "admin" ? "Administrador" : "Colaborador"}
+                  {user?.role === "admin"
+                    ? "Administrador"
+                    : user?.role === "gestor"
+                    ? "Gestor"
+                    : "Colaborador"}
                 </span>
               </div>
             </button>

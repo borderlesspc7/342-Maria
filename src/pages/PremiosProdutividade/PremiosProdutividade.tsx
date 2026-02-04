@@ -92,35 +92,43 @@ const PremiosProdutividade: React.FC = () => {
       setLoading(true);
       const data = await premioProdutividadeService.list(filters);
       setPremios(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao carregar prêmios:", error);
-      showToast("Não foi possível carregar os prêmios de produtividade.", "error");
+      const errorMessage = error?.message || "Não foi possível carregar os prêmios de produtividade.";
+      showToast(errorMessage, "error");
+      setPremios([]); // Define lista vazia em caso de erro
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, showToast]);
 
   useEffect(() => {
     loadPremios();
   }, [loadPremios]);
 
   useEffect(() => {
-    colaboradorService.list().then(setColaboradoresList).catch(console.error);
+    colaboradorService.list().then(setColaboradoresList).catch((error) => {
+      console.error("Erro ao carregar colaboradores:", error);
+      showToast("Erro ao carregar lista de colaboradores", "error");
+    });
+  }, [showToast]);
+
+  const loadStats = useCallback(async (ano: number, mes: number) => {
+    try {
+      const data = await premioProdutividadeService.getStats(ano, mes);
+      setStats(data);
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas:", error);
+    }
   }, []);
 
   useEffect(() => {
     if (filters.ano && filters.mes) {
       loadStats(filters.ano, filters.mes);
     }
-  }, [filters.ano, filters.mes]);
+  }, [filters.ano, filters.mes, loadStats]);
 
-  useEffect(() => {
-    if (selectedColaborador) {
-      loadHistorico(selectedColaborador);
-    }
-  }, [selectedColaborador]);
-
-  const loadHistorico = async (colaboradorId: string) => {
+  const loadHistorico = useCallback(async (colaboradorId: string) => {
     try {
       const data = await premioProdutividadeService.getHistoricoByColaborador(
         colaboradorId
@@ -129,16 +137,14 @@ const PremiosProdutividade: React.FC = () => {
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
     }
-  };
+  }, []);
 
-  const loadStats = async (ano: number, mes: number) => {
-    try {
-      const data = await premioProdutividadeService.getStats(ano, mes);
-      setStats(data);
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
+  useEffect(() => {
+    if (selectedColaborador) {
+      loadHistorico(selectedColaborador);
     }
-  };
+  }, [selectedColaborador, loadHistorico]);
+
 
   const handleFilterChange = (
     key: keyof PremioFilters,
@@ -716,6 +722,25 @@ const PremioModal: React.FC<PremioModalProps> = ({
     setSaving(true);
 
     try {
+      // Validações básicas
+      if (!formData.colaboradorNome.trim()) {
+        showToast("Selecione um colaborador", "error");
+        setSaving(false);
+        return;
+      }
+
+      if (!formData.motivo.trim()) {
+        showToast("Informe o motivo do prêmio", "error");
+        setSaving(false);
+        return;
+      }
+
+      if (formData.valor <= 0) {
+        showToast("O valor deve ser maior que zero", "error");
+        setSaving(false);
+        return;
+      }
+
       const payload: PremioFormData = {
         colaboradorId: formData.colaboradorId || generateTempId(),
         colaboradorNome: formData.colaboradorNome,
@@ -731,14 +756,17 @@ const PremioModal: React.FC<PremioModalProps> = ({
 
       if (premio) {
         await premioProdutividadeService.update(premio.id, payload);
+        showToast("Prêmio atualizado com sucesso!", "success");
       } else {
         await premioProdutividadeService.create(payload);
+        showToast("Prêmio criado com sucesso!", "success");
       }
 
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar prêmio:", error);
-      alert("Não foi possível salvar o prêmio.");
+      const errorMessage = error?.message || "Não foi possível salvar o prêmio.";
+      showToast(errorMessage, "error");
     } finally {
       setSaving(false);
     }

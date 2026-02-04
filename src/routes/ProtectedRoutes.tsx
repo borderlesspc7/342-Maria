@@ -5,9 +5,11 @@ import type { ReactNode } from "react";
 
 interface ProtectedRoutesProps {
   children: ReactNode;
+  /** Papéis permitidos para acessar a rota. Se não informado, qualquer usuário autenticado pode acessar. */
+  allowedRoles?: Array<"admin" | "gestor" | "colaborador">;
 }
 
-export function ProtectedRoutes({ children }: ProtectedRoutesProps) {
+export function ProtectedRoutes({ children, allowedRoles }: ProtectedRoutesProps) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -16,6 +18,12 @@ export function ProtectedRoutes({ children }: ProtectedRoutesProps) {
 
   if (!user) {
     return <Navigate to={paths.login} replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!user.role || !allowedRoles.includes(user.role)) {
+      return <Navigate to={paths.dashboard} replace />;
+    }
   }
 
   return <>{children}</>;

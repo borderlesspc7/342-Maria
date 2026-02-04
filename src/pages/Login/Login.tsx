@@ -177,16 +177,6 @@ const Login: React.FC = () => {
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
-          <div className="login-divider login-form-group-5"></div>
-
-          <button
-            type="button"
-            className="login-btn-secondary login-form-group-6"
-            onClick={() => navigate("/register")}
-          >
-            Criar nova conta
-          </button>
-
           <div className="login-footer">
             <p>© 2025 Sistema de Gestão RH. Todos os direitos reservados.</p>
           </div>

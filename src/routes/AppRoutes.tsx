@@ -4,7 +4,9 @@ import { ProtectedRoutes } from "./ProtectedRoutes";
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
+import SetupAdmin from "../pages/Setup/SetupAdmin";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Administracao from "../pages/Administracao/Administracao";
 import Colaboradores from "../pages/Colaboradores/Colaboradores";
 import PremiosProdutividade from "../pages/PremiosProdutividade/PremiosProdutividade";
 import BoletinsMedicao from "../pages/BoletinsMedicao/BoletinsMedicao";
@@ -21,6 +23,7 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/setup-admin" element={<SetupAdmin />} />
         <Route path={paths.login} element={<Login />} />
         <Route path={paths.register} element={<Register />} />
         <Route path={paths.forgotPassword} element={<ForgotPassword />} />
@@ -35,15 +38,23 @@ export function AppRoutes() {
         <Route
           path={paths.dashboard}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor", "colaborador"]}>
               <Dashboard />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path={paths.administracao}
+          element={
+            <ProtectedRoutes allowedRoles={["admin"]}>
+              <Administracao />
             </ProtectedRoutes>
           }
         />
         <Route
           path={paths.colaboradores}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <Colaboradores />
             </ProtectedRoutes>
           }
@@ -51,7 +62,7 @@ export function AppRoutes() {
         <Route
           path={paths.premiosProdutividade}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <PremiosProdutividade />
             </ProtectedRoutes>
           }
@@ -59,7 +70,7 @@ export function AppRoutes() {
         <Route
           path={paths.boletinsMedicao}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <BoletinsMedicao />
             </ProtectedRoutes>
           }
@@ -67,7 +78,7 @@ export function AppRoutes() {
         <Route
           path={paths.documentacoes}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <Documentacoes />
             </ProtectedRoutes>
           }
@@ -75,7 +86,7 @@ export function AppRoutes() {
         <Route
           path={paths.cadernoVirtual}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor", "colaborador"]}>
               <CadernoVirtual />
             </ProtectedRoutes>
           }
@@ -83,7 +94,7 @@ export function AppRoutes() {
         <Route
           path={paths.relatorios}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <Relatorios />
             </ProtectedRoutes>
           }
@@ -91,7 +102,7 @@ export function AppRoutes() {
         <Route
           path={paths.financeiro}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin"]}>
               <Financeiro />
             </ProtectedRoutes>
           }
@@ -99,7 +110,7 @@ export function AppRoutes() {
         <Route
           path={paths.notificacoes}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor", "colaborador"]}>
               <Notificacoes />
             </ProtectedRoutes>
           }
@@ -107,7 +118,7 @@ export function AppRoutes() {
         <Route
           path={paths.perfil}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor", "colaborador"]}>
               <Perfil />
             </ProtectedRoutes>
           }
@@ -115,7 +126,7 @@ export function AppRoutes() {
         <Route
           path={paths.configuracoes}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin"]}>
               <Configuracoes />
             </ProtectedRoutes>
           }
@@ -123,7 +134,7 @@ export function AppRoutes() {
         <Route
           path={paths.documentosFinanceiros}
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes allowedRoles={["admin", "gestor"]}>
               <DocumentosFinanceiros />
             </ProtectedRoutes>
           }
