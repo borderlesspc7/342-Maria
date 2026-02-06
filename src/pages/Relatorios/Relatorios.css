@@ -137,21 +137,22 @@
 
 .relatorios-summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 24px;
   margin-bottom: 32px;
 }
 
 .relatorios-summary-card {
   background: white;
-  padding: 24px;
+  padding: 20px;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .relatorios-summary-card:hover {
@@ -164,14 +165,29 @@
   background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
+/* Ajuste para valores muito longos */
+.relatorios-summary-value:has(br),
+.relatorios-summary-value[data-large="true"] {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.relatorios-summary-value.total-value:has(br),
+.relatorios-summary-value.total-value[data-large="true"] {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
 .relatorios-summary-icon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
@@ -187,26 +203,38 @@
 .relatorios-summary-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .relatorios-summary-content h3 {
-  font-size: 14px;
+  font-size: 13px;
   color: #718096;
-  margin: 0 0 8px 0;
+  margin: 0;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .relatorios-summary-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #1a202c;
   margin: 0;
-  line-height: 1;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .relatorios-summary-value.total-value {
-  font-size: 28px;
+  font-size: 22px;
   color: #1e40af;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .relatorios-details {
@@ -345,6 +373,20 @@
   margin: 0;
 }
 
+@media (max-width: 1200px) {
+  .relatorios-summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .relatorios-summary-value {
+    font-size: 18px;
+  }
+  
+  .relatorios-summary-value.total-value {
+    font-size: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .relatorios-filters-content {
     flex-direction: column;
@@ -358,6 +400,31 @@
   .relatorios-summary-cards {
     grid-template-columns: 1fr;
   }
+  
+  .relatorios-summary-card {
+    padding: 18px;
+    gap: 12px;
+  }
+  
+  .relatorios-summary-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 20px;
+  }
+  
+  .relatorios-summary-content h3 {
+    font-size: 12px;
+  }
+  
+  .relatorios-summary-value {
+    font-size: 18px;
+  }
+  
+  .relatorios-summary-value.total-value {
+    font-size: 20px;
+  }
 
   .relatorios-detail-grid {
     grid-template-columns: 1fr;
@@ -370,5 +437,40 @@
   .relatorios-export-btn {
     width: 100%;
     justify-content: center;
+  }
+  
+  .relatorios-title {
+    font-size: 24px;
+  }
+  
+  .relatorios-subtitle {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .relatorios-summary-card {
+    padding: 16px;
+    gap: 10px;
+  }
+  
+  .relatorios-summary-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 18px;
+  }
+  
+  .relatorios-summary-content h3 {
+    font-size: 11px;
+  }
+  
+  .relatorios-summary-value {
+    font-size: 16px;
+  }
+  
+  .relatorios-summary-value.total-value {
+    font-size: 18px;
   }
 }

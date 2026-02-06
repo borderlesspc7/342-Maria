@@ -1,11 +1,54 @@
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+  Timestamp,
+  QueryConstraint,
+} from "firebase/firestore";
+import { db } from "../lib/firebaseconfig";
 import type {
   BoletimMedicao,
   BoletimMedicaoFormData,
   BoletimFilters,
   BoletimStats,
+  Anexo,
 } from "../types/boletimMedicao";
+import { uploadAnexos, removeAnexo } from "./anexoService";
 
-// Mock data - será substituído por chamadas ao Firebase
+const BOLETINS_COLLECTION = "boletinsMedicao";
+
+/**
+ * Converte um documento do Firestore para BoletimMedicao
+ */
+function convertToBoletim(doc: any): BoletimMedicao {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    numero: data.numero || "",
+    cliente: data.cliente || "",
+    mesReferencia: data.mesReferencia || "",
+    anoReferencia: data.anoReferencia || new Date().getFullYear(),
+    tipoServico: data.tipoServico || "Outro",
+    status: data.status || "Pendente",
+    valor: data.valor || 0,
+    dataEmissao: data.dataEmissao?.toDate?.() || new Date(data.dataEmissao || Date.now()),
+    dataVencimento: data.dataVencimento?.toDate?.() || new Date(data.dataVencimento || Date.now()),
+    observacoes: data.observacoes || "",
+    anexos: data.anexos || [],
+    criadoPor: data.criadoPor || "unknown",
+    criadoEm: data.criadoEm?.toDate?.() || new Date(data.criadoEm || Date.now()),
+    atualizadoEm: data.atualizadoEm?.toDate?.() || new Date(data.atualizadoEm || Date.now()),
+  };
+}
+
+// Mock data para fallback local (quando Firebase não está disponível)
 const mockBoletins: BoletimMedicao[] = [
   {
     id: "1",
@@ -96,130 +139,284 @@ const mockBoletins: BoletimMedicao[] = [
 
 export const boletimMedicaoService = {
   async getAll(filters?: BoletimFilters): Promise<BoletimMedicao[]> {
-    // Simula delay de API
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      // Construir query com filtros
+      const constraints: QueryConstraint[] = [];
 
-    let filtered = [...mockBoletins];
+      if (filters) {
+        if (filters.mes) {
+          constraints.push(where("mesReferencia", "==", filters.mes));
+        }
+        if (filters.ano) {
+          constraints.push(where("anoReferencia", "==", filters.ano));
+        }
+        if (filters.tipoServico) {
+          constraints.push(where("tipoServico", "==", filters.tipoServico));
+        }
+        if (filters.status) {
+          constraints.push(where("status", "==", filters.status));
+        }
+      }
 
-    if (filters) {
-      if (filters.mes) {
-        filtered = filtered.filter((b) => b.mesReferencia === filters.mes);
-      }
-      if (filters.ano) {
-        filtered = filtered.filter((b) => b.anoReferencia === filters.ano);
-      }
-      if (filters.cliente) {
-        filtered = filtered.filter((b) =>
+      // Ordenar por data de criação (mais recentes primeiro)
+      constraints.push(orderBy("criadoEm", "desc"));
+
+      const q = query(collection(db, BOLETINS_COLLECTION), ...constraints);
+      const querySnapshot = await getDocs(q);
+
+      let boletins = querySnapshot.docs.map(convertToBoletim);
+
+      // Filtro de cliente (aplicado localmente por causa de limitações do Firestore)
+      if (filters?.cliente) {
+        boletins = boletins.filter((b) =>
           b.cliente.toLowerCase().includes(filters.cliente!.toLowerCase())
         );
       }
-      if (filters.tipoServico) {
-        filtered = filtered.filter(
-          (b) => b.tipoServico === filters.tipoServico
-        );
-      }
-      if (filters.status) {
-        filtered = filtered.filter((b) => b.status === filters.status);
-      }
-    }
 
-    return filtered.sort((a, b) => b.criadoEm.getTime() - a.criadoEm.getTime());
+      return boletins;
+    } catch (error) {
+      console.error("Erro ao buscar boletins no Firebase, usando fallback:", error);
+      
+      // Fallback: usar mock ou aplicar filtros localmente
+      let filtered = [...mockBoletins];
+      if (filters) {
+        if (filters.mes) {
+          filtered = filtered.filter((b) => b.mesReferencia === filters.mes);
+        }
+        if (filters.ano) {
+          filtered = filtered.filter((b) => b.anoReferencia === filters.ano);
+        }
+        if (filters.cliente) {
+          filtered = filtered.filter((b) =>
+            b.cliente.toLowerCase().includes(filters.cliente!.toLowerCase())
+          );
+        }
+        if (filters.tipoServico) {
+          filtered = filtered.filter((b) => b.tipoServico === filters.tipoServico);
+        }
+        if (filters.status) {
+          filtered = filtered.filter((b) => b.status === filters.status);
+        }
+      }
+      return filtered.sort((a, b) => b.criadoEm.getTime() - a.criadoEm.getTime());
+    }
   },
 
   async getById(id: string): Promise<BoletimMedicao | null> {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return mockBoletins.find((b) => b.id === id) || null;
+    try {
+      const docRef = doc(db, BOLETINS_COLLECTION, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return convertToBoletim(docSnap);
+      }
+      return null;
+    } catch (error) {
+      console.error("Erro ao buscar boletim por ID, usando fallback:", error);
+      return mockBoletins.find((b) => b.id === id) || null;
+    }
   },
 
   async create(data: BoletimMedicaoFormData): Promise<BoletimMedicao> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Gerar número do boletim
+      const allBoletins = await this.getAll({ ano: data.anoReferencia });
+      const numero = `BM-${data.anoReferencia}-${String(allBoletins.length + 1).padStart(3, "0")}`;
 
-    const novoBoletim: BoletimMedicao = {
-      id: Date.now().toString(),
-      numero: `BM-${data.anoReferencia}-${String(
-        mockBoletins.length + 1
-      ).padStart(3, "0")}`,
-      cliente: data.cliente,
-      mesReferencia: data.mesReferencia,
-      anoReferencia: data.anoReferencia,
-      tipoServico: data.tipoServico,
-      status: data.status,
-      valor: data.valor,
-      dataEmissao: data.dataEmissao,
-      dataVencimento: data.dataVencimento,
-      observacoes: data.observacoes,
-      anexos: [],
-      criadoPor: "current-user",
-      criadoEm: new Date(),
-      atualizadoEm: new Date(),
-    };
+      const now = new Date();
+      const docData = {
+        numero,
+        cliente: data.cliente,
+        mesReferencia: data.mesReferencia,
+        anoReferencia: data.anoReferencia,
+        tipoServico: data.tipoServico,
+        status: data.status || "Pendente",
+        valor: data.valor,
+        dataEmissao: data.dataEmissao ? Timestamp.fromDate(data.dataEmissao) : Timestamp.fromDate(now),
+        dataVencimento: data.dataVencimento ? Timestamp.fromDate(data.dataVencimento) : Timestamp.fromDate(now),
+        observacoes: data.observacoes || "",
+        anexos: [],
+        criadoPor: "current-user", // TODO: pegar do AuthContext
+        criadoEm: Timestamp.fromDate(now),
+        atualizadoEm: Timestamp.fromDate(now),
+      };
 
-    mockBoletins.push(novoBoletim);
-    return novoBoletim;
+      const docRef = await addDoc(collection(db, BOLETINS_COLLECTION), docData);
+      const docSnap = await getDoc(docRef);
+      
+      return convertToBoletim(docSnap);
+    } catch (error) {
+      console.error("Erro ao criar boletim no Firebase:", error);
+      throw new Error("Falha ao criar boletim de medição. Verifique sua conexão.");
+    }
   },
 
   async update(
     id: string,
     data: Partial<BoletimMedicaoFormData>
   ): Promise<BoletimMedicao> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const docRef = doc(db, BOLETINS_COLLECTION, id);
+      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { anexos, ...updateData } = data;
+      
+      const updatePayload: any = {
+        ...updateData,
+        atualizadoEm: Timestamp.fromDate(new Date()),
+      };
 
-    const index = mockBoletins.findIndex((b) => b.id === id);
-    if (index === -1) {
-      throw new Error("Boletim não encontrado");
+      // Converter datas para Timestamp se presentes
+      if (updateData.dataEmissao) {
+        updatePayload.dataEmissao = Timestamp.fromDate(updateData.dataEmissao);
+      }
+      if (updateData.dataVencimento) {
+        updatePayload.dataVencimento = Timestamp.fromDate(updateData.dataVencimento);
+      }
+
+      await updateDoc(docRef, updatePayload);
+      
+      const updatedDoc = await getDoc(docRef);
+      if (!updatedDoc.exists()) {
+        throw new Error("Boletim não encontrado após atualização");
+      }
+      
+      return convertToBoletim(updatedDoc);
+    } catch (error) {
+      console.error("Erro ao atualizar boletim no Firebase:", error);
+      throw new Error("Falha ao atualizar boletim de medição.");
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { anexos, ...updateData } = data;
-    const boletimAtualizado: BoletimMedicao = {
-      ...mockBoletins[index],
-      ...updateData,
-      atualizadoEm: new Date(),
-    };
-
-    mockBoletins[index] = boletimAtualizado;
-    return boletimAtualizado;
   },
 
   async delete(id: string): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const index = mockBoletins.findIndex((b) => b.id === id);
-    if (index !== -1) {
-      mockBoletins.splice(index, 1);
+    try {
+      const docRef = doc(db, BOLETINS_COLLECTION, id);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error("Erro ao deletar boletim no Firebase:", error);
+      throw new Error("Falha ao excluir boletim de medição.");
     }
   },
 
   async getStats(ano?: number, mes?: string): Promise<BoletimStats> {
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    try {
+      // Buscar boletins com filtros
+      const filters: BoletimFilters = {};
+      if (ano) filters.ano = ano;
+      if (mes) filters.mes = mes;
 
-    let filtered = [...mockBoletins];
+      const boletins = await this.getAll(filters);
 
-    if (ano) {
-      filtered = filtered.filter((b) => b.anoReferencia === ano);
+      const totalEmitidoMes = boletins
+        .filter((b) => b.status === "Emitido")
+        .reduce((sum, b) => sum + b.valor, 0);
+
+      const saldoPendente = boletins
+        .filter(
+          (b) => b.status === "Pendente" || b.status === "Aguardando assinatura"
+        )
+        .reduce((sum, b) => sum + b.valor, 0);
+
+      const aguardandoAssinatura = boletins.filter(
+        (b) => b.status === "Aguardando assinatura"
+      ).length;
+
+      return {
+        totalEmitidoMes,
+        saldoPendente,
+        totalBoletins: boletins.length,
+        aguardandoAssinatura,
+      };
+    } catch (error) {
+      console.error("Erro ao buscar estatísticas de boletins:", error);
+      
+      // Fallback local
+      let filtered = [...mockBoletins];
+      if (ano) {
+        filtered = filtered.filter((b) => b.anoReferencia === ano);
+      }
+      if (mes) {
+        filtered = filtered.filter((b) => b.mesReferencia === mes);
+      }
+
+      const totalEmitidoMes = filtered
+        .filter((b) => b.status === "Emitido")
+        .reduce((sum, b) => sum + b.valor, 0);
+
+      const saldoPendente = filtered
+        .filter(
+          (b) => b.status === "Pendente" || b.status === "Aguardando assinatura"
+        )
+        .reduce((sum, b) => sum + b.valor, 0);
+
+      const aguardandoAssinatura = filtered.filter(
+        (b) => b.status === "Aguardando assinatura"
+      ).length;
+
+      return {
+        totalEmitidoMes,
+        saldoPendente,
+        totalBoletins: filtered.length,
+        aguardandoAssinatura,
+      };
     }
-    if (mes) {
-      filtered = filtered.filter((b) => b.mesReferencia === mes);
+  },
+
+  /**
+   * Adiciona anexos a um boletim
+   */
+  async addAnexos(boletimId: string, files: File[]): Promise<Anexo[]> {
+    try {
+      // Upload dos arquivos
+      const novosAnexos = await uploadAnexos(files);
+
+      // Buscar boletim atual
+      const boletim = await this.getById(boletimId);
+      if (!boletim) {
+        throw new Error("Boletim não encontrado");
+      }
+
+      // Atualizar boletim com novos anexos
+      const anexosAtualizados = [...boletim.anexos, ...novosAnexos];
+      
+      const docRef = doc(db, BOLETINS_COLLECTION, boletimId);
+      await updateDoc(docRef, {
+        anexos: anexosAtualizados,
+        atualizadoEm: Timestamp.fromDate(new Date()),
+      });
+
+      return novosAnexos;
+    } catch (error) {
+      console.error("Erro ao adicionar anexos:", error);
+      throw new Error("Falha ao adicionar anexos ao boletim");
     }
+  },
 
-    const totalEmitidoMes = filtered
-      .filter((b) => b.status === "Emitido")
-      .reduce((sum, b) => sum + b.valor, 0);
+  /**
+   * Remove um anexo de um boletim
+   */
+  async removeAnexo(boletimId: string, anexoId: string): Promise<void> {
+    try {
+      const boletim = await this.getById(boletimId);
+      if (!boletim) {
+        throw new Error("Boletim não encontrado");
+      }
 
-    const saldoPendente = filtered
-      .filter(
-        (b) => b.status === "Pendente" || b.status === "Aguardando assinatura"
-      )
-      .reduce((sum, b) => sum + b.valor, 0);
+      // Remover anexo da lista
+      const anexosAtualizados = boletim.anexos.filter((a) => a.id !== anexoId);
 
-    const aguardandoAssinatura = filtered.filter(
-      (b) => b.status === "Aguardando assinatura"
-    ).length;
+      // Atualizar no Firestore
+      const docRef = doc(db, BOLETINS_COLLECTION, boletimId);
+      await updateDoc(docRef, {
+        anexos: anexosAtualizados,
+        atualizadoEm: Timestamp.fromDate(new Date()),
+      });
 
-    return {
-      totalEmitidoMes,
-      saldoPendente,
-      totalBoletins: filtered.length,
-      aguardandoAssinatura,
-    };
+      // Remover arquivo (em produção, do Firebase Storage)
+      await removeAnexo(anexoId);
+    } catch (error) {
+      console.error("Erro ao remover anexo:", error);
+      throw new Error("Falha ao remover anexo");
+    }
   },
 };

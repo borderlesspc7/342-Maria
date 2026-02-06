@@ -12,18 +12,24 @@ import {
   HiPaperClip,
   HiTrash,
   HiPencil,
+  HiDownload,
+  HiCloudUpload,
 } from "react-icons/hi";
 import type {
   BoletimMedicao,
   BoletimFilters,
   BoletimStatus,
   TipoServico,
+  Anexo,
 } from "../../types/boletimMedicao";
 import { boletimMedicaoService } from "../../services/boletimMedicaoService";
 import { useToast } from "../../contexts/ToastContext";
+import { exportToPDF, exportToExcel } from "../../utils/exportUtils";
+import { downloadAnexo, formatFileSize, validateFileSize, validateFileType } from "../../services/anexoService";
 import "./BoletinsMedicao.css";
 
 const BoletinsMedicao: React.FC = () => {
+  const { showToast } = useToast();
   const [boletins, setBoletins] = useState<BoletimMedicao[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -144,6 +150,60 @@ const BoletinsMedicao: React.FC = () => {
     return new Intl.DateTimeFormat("pt-BR").format(date);
   };
 
+  const handleExportPDF = () => {
+    const data = boletins.map((b) => ({
+      numero: b.numero,
+      cliente: b.cliente,
+      mesAno: `${b.mesReferencia}/${b.anoReferencia}`,
+      tipoServico: b.tipoServico,
+      valor: b.valor,
+      status: b.status,
+      dataEmissao: b.dataEmissao || new Date(),
+    }));
+
+    const headers = {
+      numero: "Número",
+      cliente: "Cliente",
+      mesAno: "Mês/Ano",
+      tipoServico: "Tipo",
+      valor: "Valor (R$)",
+      status: "Status",
+      dataEmissao: "Data Emissão",
+    };
+
+    exportToPDF(data, "boletins-medicao", "Boletins de Medição", headers);
+    showToast("Exportando para PDF...");
+  };
+
+  const handleExportExcel = () => {
+    const data = boletins.map((b) => ({
+      numero: b.numero,
+      cliente: b.cliente,
+      mesAno: `${b.mesReferencia}/${b.anoReferencia}`,
+      tipoServico: b.tipoServico,
+      valor: b.valor,
+      status: b.status,
+      dataEmissao: b.dataEmissao ? formatDate(b.dataEmissao) : "-",
+      dataVencimento: b.dataVencimento ? formatDate(b.dataVencimento) : "-",
+      observacoes: b.observacoes || "",
+    }));
+
+    const headers = {
+      numero: "Número",
+      cliente: "Cliente",
+      mesAno: "Mês/Ano",
+      tipoServico: "Tipo de Serviço",
+      valor: "Valor (R$)",
+      status: "Status",
+      dataEmissao: "Data Emissão",
+      dataVencimento: "Data Vencimento",
+      observacoes: "Observações",
+    };
+
+    exportToExcel(data, "boletins-medicao", headers);
+    showToast("Exportado para Excel!");
+  };
+
   return (
     <Layout>
       <div className="boletins-medicao">
@@ -154,16 +214,34 @@ const BoletinsMedicao: React.FC = () => {
               Controle e gestão de boletins de medição
             </p>
           </div>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setEditingBoletim(null);
-              setShowModal(true);
-            }}
-          >
-            <HiPlus />
-            Novo Boletim
-          </button>
+          <div className="page-actions">
+            <button
+              className="btn-secondary"
+              onClick={handleExportPDF}
+              title="Exportar para PDF"
+            >
+              <HiDownload />
+              PDF
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={handleExportExcel}
+              title="Exportar para Excel"
+            >
+              <HiDownload />
+              Excel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                setEditingBoletim(null);
+                setShowModal(true);
+              }}
+            >
+              <HiPlus />
+              Novo Boletim
+            </button>
+          </div>
         </div>
 
         <div className="stats-cards">
@@ -413,6 +491,7 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     cliente: boletim?.cliente || "",
     mesReferencia: boletim?.mesReferencia || "",
@@ -432,6 +511,7 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [existingAnexos, setExistingAnexos] = useState<Anexo[]>(boletim?.anexos || []);
 
   const meses = [
     "Janeiro",
@@ -476,13 +556,24 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
           : undefined,
       };
 
+      let boletimId: string;
+
       if (boletim) {
         await boletimMedicaoService.update(boletim.id, data);
+        boletimId = boletim.id;
         showToast("Boletim atualizado com sucesso!");
       } else {
-        await boletimMedicaoService.create(data);
-        showToast("Boletim salvo com sucesso!");
+        const novoBol = await boletimMedicaoService.create(data);
+        boletimId = novoBol.id;
+        showToast("Boletim criado com sucesso!");
       }
+
+      // Upload de novos anexos se houver
+      if (formData.anexos.length > 0) {
+        await boletimMedicaoService.addAnexos(boletimId, formData.anexos);
+        showToast(`${formData.anexos.length} anexo(s) adicionado(s)!`);
+      }
+
       onSave();
     } catch (error) {
       console.error("Erro ao salvar boletim:", error);
@@ -494,10 +585,39 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
+      const files = Array.from(e.target.files);
+      
+      // Validar tamanho e tipo
+      const validFiles: File[] = [];
+      for (const file of files) {
+        if (!validateFileSize(file)) {
+          showToast(`Arquivo ${file.name} excede 5MB`, "error");
+          continue;
+        }
+        if (!validateFileType(file, ["application/pdf", "image/jpeg", "image/jpg", "image/png", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])) {
+          showToast(`Tipo de arquivo ${file.name} não permitido`, "error");
+          continue;
+        }
+        validFiles.push(file);
+      }
+      
       setFormData((prev) => ({
         ...prev,
-        anexos: Array.from(e.target.files || []),
+        anexos: [...prev.anexos, ...validFiles],
       }));
+    }
+  };
+
+  const handleRemoveExistingAnexo = async (anexoId: string) => {
+    if (!boletim) return;
+    
+    try {
+      await boletimMedicaoService.removeAnexo(boletim.id, anexoId);
+      setExistingAnexos((prev) => prev.filter((a) => a.id !== anexoId));
+      showToast("Anexo removido!");
+    } catch (error) {
+      console.error("Erro ao remover anexo:", error);
+      showToast("Erro ao remover anexo", "error");
     }
   };
 
@@ -684,27 +804,70 @@ const BoletimModal: React.FC<BoletimModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label>Anexar Arquivos</label>
+            <label>
+              <HiPaperClip /> Anexos
+            </label>
+            
+            {/* Anexos existentes */}
+            {existingAnexos.length > 0 && (
+              <div className="anexos-existentes">
+                <h4>Anexos Atuais</h4>
+                <div className="file-list">
+                  {existingAnexos.map((anexo) => (
+                    <div key={anexo.id} className="file-item existing">
+                      <HiDocumentText />
+                      <div className="file-info">
+                        <span className="file-name">{anexo.nome}</span>
+                        <span className="file-size">{formatFileSize(anexo.tamanho)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-download"
+                        onClick={() => downloadAnexo(anexo)}
+                        title="Baixar"
+                      >
+                        <HiDownload />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-remove"
+                        onClick={() => handleRemoveExistingAnexo(anexo.id)}
+                        title="Remover"
+                      >
+                        <HiX />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload de novos anexos */}
             <div className="file-upload">
               <input
                 type="file"
                 multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 onChange={handleFileChange}
                 id="file-upload"
+                className="file-input"
               />
               <label htmlFor="file-upload" className="file-upload-label">
-                <HiPaperClip />
-                Selecionar arquivos (PDF, NF, OS, etc.)
+                <HiCloudUpload />
+                Adicionar novos arquivos (PDF, DOC, IMG - max 5MB)
               </label>
               {formData.anexos.length > 0 && (
                 <div className="file-list">
                   {formData.anexos.map((file, index) => (
-                    <div key={index} className="file-item">
+                    <div key={index} className="file-item new">
                       <HiDocumentText />
-                      <span>{file.name}</span>
+                      <div className="file-info">
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">{formatFileSize(file.size)}</span>
+                      </div>
                       <button
                         type="button"
+                        className="btn-remove"
                         onClick={() => {
                           setFormData((prev) => ({
                             ...prev,

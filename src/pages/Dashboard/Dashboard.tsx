@@ -13,12 +13,17 @@ import {
   HiLink,
   HiX,
   HiArrowRight,
+  HiCurrencyDollar,
+  HiCalendar,
+  HiChartBar,
 } from "react-icons/hi";
 import { paths } from "../../routes/paths";
 import { colaboradorService } from "../../services/colaboradorService";
 import { documentacoesService } from "../../services/documentacoesService";
 import { boletimMedicaoService } from "../../services/boletimMedicaoService";
 import { premioProdutividadeService } from "../../services/premioProdutividadeService";
+import { cadernoVirtualService } from "../../services/cadernoVirtualService";
+import { formatCurrency } from "../../utils/exportUtils";
 import "./Dashboard.css";
 
 const MESES_PT: string[] = [
@@ -39,25 +44,40 @@ interface Notification {
 interface DashboardStats {
   colaboradores: number;
   documentosPendentes: number;
+  documentosVencendo: number;
   boletinsMes: number;
   premiosAtivos: number;
-  integracoesAtivas: number;
-  integracoesComErro: number;
+  lancamentosHoje: number;
+  valorBoletinsMes: number;
+  valorPremiosMes: number;
+}
+
+interface RecentActivity {
+  id: string;
+  type: "lancamento" | "premio" | "boletim" | "documento";
+  title: string;
+  description: string;
+  time: Date;
+  icon: React.ReactNode;
+  color: string;
 }
 
 const initialStats: DashboardStats = {
   colaboradores: 0,
   documentosPendentes: 0,
+  documentosVencendo: 0,
   boletinsMes: 0,
   premiosAtivos: 0,
-  integracoesAtivas: 0,
-  integracoesComErro: 0,
+  lancamentosHoje: 0,
+  valorBoletinsMes: 0,
+  valorPremiosMes: 0,
 };
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
@@ -121,26 +141,129 @@ const Dashboard: React.FC = () => {
       const now = new Date();
       const mesAtual = MESES_PT[now.getMonth()];
       const anoAtual = now.getFullYear();
+      const hoje = now.toISOString().split("T")[0];
 
-      const [colaboradores, documentos, boletins, premios] = await Promise.all([
+      const [
+        colaboradores,
+        documentos,
+        boletins,
+        premios,
+        lancamentos,
+      ] = await Promise.all([
         colaboradorService.list(),
         documentacoesService.list(),
         boletimMedicaoService.getAll({ mes: mesAtual, ano: anoAtual }),
         premioProdutividadeService.list(),
+        cadernoVirtualService.list().catch(() => []),
       ]);
 
+      // Documentos pendentes e vencendo
       const documentosPendentes = documentos.filter(
-        (d) => d.status === "Pendente" || d.status === "Vencido" || d.status === "Vencendo"
+        (d) => d.status === "Pendente" || d.status === "Vencido"
       ).length;
+
+      const documentosVencendo = documentos.filter(
+        (d) => d.status === "Vencendo"
+      ).length;
+
+      // Lançamentos de hoje
+      const lancamentosHoje = lancamentos.filter((l) => {
+        const lancDate = l.dataLancamento instanceof Date 
+          ? l.dataLancamento 
+          : new Date(l.dataLancamento);
+        return lancDate.toISOString().split("T")[0] === hoje;
+      }).length;
+
+      // Valor total de boletins emitidos no mês
+      const valorBoletinsMes = boletins
+        .filter((b) => b.status === "Emitido")
+        .reduce((sum, b) => sum + b.valor, 0);
+
+      // Prêmios do mês atual
+      const premiosMesAtual = premios.filter((p) => {
+        const premioDate = p.dataPremio instanceof Date 
+          ? p.dataPremio 
+          : new Date(p.dataPremio || p.criadoEm);
+        return (
+          premioDate.getMonth() === now.getMonth() &&
+          premioDate.getFullYear() === anoAtual
+        );
+      });
+
+      const valorPremiosMes = premiosMesAtual.reduce(
+        (sum, p) => sum + (p.valor || 0),
+        0
+      );
 
       setStats({
         colaboradores: colaboradores.length,
         documentosPendentes,
+        documentosVencendo,
         boletinsMes: boletins.length,
-        premiosAtivos: premios.length,
-        integracoesAtivas: 0,
-        integracoesComErro: 0,
+        premiosAtivos: premiosMesAtual.length,
+        lancamentosHoje,
+        valorBoletinsMes,
+        valorPremiosMes,
       });
+
+      // Montar atividades recentes
+      const activities: RecentActivity[] = [];
+
+      // Últimos lançamentos
+      lancamentos
+        .slice(0, 3)
+        .forEach((l) => {
+          const lancTime = l.dataLancamento instanceof Date 
+            ? l.dataLancamento 
+            : new Date(l.dataLancamento);
+          activities.push({
+            id: `lanc-${l.id}`,
+            type: "lancamento",
+            title: "Novo lançamento no Caderno Virtual",
+            description: `${l.tipoMovimentacao}: ${l.colaboradorNome} - ${formatCurrency(l.valor)}`,
+            time: lancTime,
+            icon: <HiClipboardList />,
+            color: "#3b82f6",
+          });
+        });
+
+      // Últimos prêmios
+      premios
+        .slice(0, 2)
+        .forEach((p) => {
+          const premioTime = p.dataPremio instanceof Date 
+            ? p.dataPremio 
+            : new Date(p.dataPremio || p.criadoEm);
+          activities.push({
+            id: `premio-${p.id}`,
+            type: "premio",
+            title: "Prêmio de Produtividade",
+            description: `${p.colaboradorNome || p.colaboradorId} - ${formatCurrency(p.valor || 0)} - ${p.status}`,
+            time: premioTime,
+            icon: <HiCurrencyDollar />,
+            color: "#10b981",
+          });
+        });
+
+      // Últimos boletins
+      boletins
+        .slice(0, 2)
+        .forEach((b) => {
+          activities.push({
+            id: `boletim-${b.id}`,
+            type: "boletim",
+            title: "Boletim de Medição",
+            description: `${b.cliente} - ${formatCurrency(b.valor)} - ${b.status}`,
+            time: b.criadoEm instanceof Date ? b.criadoEm : new Date(b.criadoEm),
+            icon: <HiDocumentText />,
+            color: "#f59e0b",
+          });
+        });
+
+      // Ordenar por data (mais recentes primeiro)
+      activities.sort((a, b) => b.time.getTime() - a.time.getTime());
+      setRecentActivities(activities.slice(0, 8));
+
     } catch (error) {
       console.error("Erro ao carregar estatísticas do dashboard:", error);
     } finally {
@@ -222,22 +345,22 @@ const Dashboard: React.FC = () => {
         <div className="stats-grid">
           <div
             className="stat-card stat-card-clickable"
-            onClick={() => navigate(paths.colaboradores)}
+            onClick={() => navigate(paths.cadernoVirtual)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && navigate(paths.colaboradores)}
-            aria-label="Ver colaboradores"
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.cadernoVirtual)}
+            aria-label="Ver caderno virtual"
           >
             <div className="stat-icon stat-icon-blue">
-              <HiUsers />
+              <HiClipboardList />
             </div>
             <div className="stat-content">
-              <h3 className="stat-label">Total de Colaboradores</h3>
+              <h3 className="stat-label">Lançamentos Hoje</h3>
               <p className="stat-value">
-                {statsLoading ? "—" : stats.colaboradores}
+                {statsLoading ? "—" : stats.lancamentosHoje}
               </p>
               <span className="stat-ver-mais">
-                Ver colaboradores <HiArrowRight />
+                Ver caderno virtual <HiArrowRight />
               </span>
             </div>
           </div>
@@ -248,15 +371,37 @@ const Dashboard: React.FC = () => {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
-            aria-label="Ver documentos"
+            aria-label="Ver documentos pendentes"
           >
-            <div className="stat-icon stat-icon-orange">
-              <HiDocumentText />
+            <div className="stat-icon stat-icon-red">
+              <HiExclamationCircle />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Documentos Pendentes</h3>
-              <p className="stat-value stat-value-warning">
+              <p className="stat-value stat-value-danger">
                 {statsLoading ? "—" : stats.documentosPendentes}
+              </p>
+              <span className="stat-ver-mais">
+                Ver documentações <HiArrowRight />
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.documentacoes)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
+            aria-label="Ver documentos vencendo"
+          >
+            <div className="stat-icon stat-icon-orange">
+              <HiClock />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Documentos Vencendo</h3>
+              <p className="stat-value stat-value-warning">
+                {statsLoading ? "—" : stats.documentosVencendo}
               </p>
               <span className="stat-ver-mais">
                 Ver documentações <HiArrowRight />
@@ -273,12 +418,34 @@ const Dashboard: React.FC = () => {
             aria-label="Ver boletins"
           >
             <div className="stat-icon stat-icon-green">
-              <HiClipboardList />
+              <HiChartBar />
             </div>
             <div className="stat-content">
               <h3 className="stat-label">Boletins do Mês</h3>
               <p className="stat-value stat-value-success">
                 {statsLoading ? "—" : stats.boletinsMes}
+              </p>
+              <span className="stat-ver-mais">
+                Ver boletins <HiArrowRight />
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="stat-card stat-card-clickable"
+            onClick={() => navigate(paths.boletinsMedicao)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.boletinsMedicao)}
+            aria-label="Ver valor de boletins"
+          >
+            <div className="stat-icon stat-icon-teal">
+              <HiCurrencyDollar />
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-label">Faturamento - Boletins</h3>
+              <p className="stat-value stat-value-teal">
+                {statsLoading ? "—" : formatCurrency(stats.valorBoletinsMes)}
               </p>
               <span className="stat-ver-mais">
                 Ver boletins <HiArrowRight />
@@ -298,9 +465,9 @@ const Dashboard: React.FC = () => {
               <HiTrendingUp />
             </div>
             <div className="stat-content">
-              <h3 className="stat-label">Prêmios Ativos</h3>
+              <h3 className="stat-label">Prêmios do Mês</h3>
               <p className="stat-value stat-value-purple">
-                {statsLoading ? "—" : stats.premiosAtivos}
+                {statsLoading ? "—" : formatCurrency(stats.valorPremiosMes)}
               </p>
               <span className="stat-ver-mais">
                 Ver prêmios <HiArrowRight />
@@ -310,46 +477,90 @@ const Dashboard: React.FC = () => {
 
           <div
             className="stat-card stat-card-clickable"
-            onClick={() => navigate(paths.documentacoes)}
+            onClick={() => navigate(paths.colaboradores)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
-            aria-label="Ver integrações"
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.colaboradores)}
+            aria-label="Ver colaboradores"
           >
-            <div className="stat-icon stat-icon-teal">
-              <HiLink />
+            <div className="stat-icon stat-icon-indigo">
+              <HiUsers />
             </div>
             <div className="stat-content">
-              <h3 className="stat-label">Integrações Ativas</h3>
-              <p className="stat-value stat-value-teal">
-                {statsLoading ? "—" : stats.integracoesAtivas}
+              <h3 className="stat-label">Total de Colaboradores</h3>
+              <p className="stat-value">
+                {statsLoading ? "—" : stats.colaboradores}
               </p>
               <span className="stat-ver-mais">
-                Documentação e Integração <HiArrowRight />
+                Ver colaboradores <HiArrowRight />
               </span>
             </div>
           </div>
 
           <div
             className="stat-card stat-card-clickable"
-            onClick={() => navigate(paths.documentacoes)}
+            onClick={() => navigate(paths.cadernoVirtual)}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && navigate(paths.documentacoes)}
-            aria-label="Ver integrações com erro"
+            onKeyDown={(e) => e.key === "Enter" && navigate(paths.cadernoVirtual)}
+            aria-label="Ver resumo mensal"
           >
-            <div className="stat-icon stat-icon-red">
-              <HiExclamationCircle />
+            <div className="stat-icon stat-icon-pink">
+              <HiCalendar />
             </div>
             <div className="stat-content">
-              <h3 className="stat-label">Integrações com Erro</h3>
-              <p className="stat-value stat-value-danger">
-                {statsLoading ? "—" : stats.integracoesComErro}
+              <h3 className="stat-label">Prêmios Ativos</h3>
+              <p className="stat-value">
+                {statsLoading ? "—" : stats.premiosAtivos}
               </p>
               <span className="stat-ver-mais">
-                Documentação e Integração <HiArrowRight />
+                Ver prêmios <HiArrowRight />
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Widget de Atividades Recentes */}
+        <div className="recent-activities-section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <HiClock className="section-icon" />
+              Atividades Recentes
+            </h2>
+            <span className="section-subtitle">
+              Últimas movimentações do sistema
+            </span>
+          </div>
+
+          <div className="activities-grid">
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity) => (
+                <div key={activity.id} className="activity-card">
+                  <div
+                    className="activity-icon"
+                    style={{ color: activity.color }}
+                  >
+                    {activity.icon}
+                  </div>
+                  <div className="activity-content">
+                    <h4 className="activity-title">{activity.title}</h4>
+                    <p className="activity-description">{activity.description}</p>
+                    <span className="activity-time">
+                      {activity.time.toLocaleDateString("pt-BR")} às{" "}
+                      {activity.time.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-activities">
+                <HiFolder className="empty-icon" />
+                <p>Nenhuma atividade recente</p>
+              </div>
+            )}
           </div>
         </div>
 
