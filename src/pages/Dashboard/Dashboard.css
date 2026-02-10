@@ -658,13 +658,86 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   font-size: 16px;
 }
 
 .notification-action:hover {
   background: #e0e7ff;
-  color: var(--theme-accent);
+  color: #3b82f6;
+  transform: scale(1.1);
+}
+
+.notification-action-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.notification-card.clickable,
+.alert-card.clickable {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-card.clickable:hover,
+.alert-card.clickable:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.notifications-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 16px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.notifications-loading p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.empty-alerts {
+  text-align: center;
+  padding: 32px 24px;
+  color: #94a3b8;
+}
+
+.empty-alerts .empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+.empty-alerts p {
+  font-size: 14px;
+  margin: 0;
+}
+
+.empty-subtitle {
+  display: block;
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 8px;
 }
 
 .notification-message,
@@ -705,17 +778,30 @@
   text-align: center;
   padding: 48px 24px;
   color: #a0aec0;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .empty-icon {
   font-size: 48px;
   margin-bottom: 16px;
   color: #cbd5e0;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .empty-state p {
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .quick-actions {

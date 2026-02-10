@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../../components/Layout";
 import {
@@ -10,12 +10,13 @@ import {
   HiClock,
   HiTrendingUp,
   HiFolder,
-  HiLink,
   HiX,
   HiArrowRight,
   HiCurrencyDollar,
   HiCalendar,
   HiChartBar,
+  HiBell,
+  HiLink,
 } from "react-icons/hi";
 import { paths } from "../../routes/paths";
 import { colaboradorService } from "../../services/colaboradorService";
@@ -23,6 +24,7 @@ import { documentacoesService } from "../../services/documentacoesService";
 import { boletimMedicaoService } from "../../services/boletimMedicaoService";
 import { premioProdutividadeService } from "../../services/premioProdutividadeService";
 import { cadernoVirtualService } from "../../services/cadernoVirtualService";
+import { useNotificationContext } from "../../contexts/NotificationContext";
 import { formatCurrency } from "../../utils/exportUtils";
 import "./Dashboard.css";
 
@@ -75,65 +77,10 @@ const initialStats: DashboardStats = {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { notificacoes, naoLidas, marcarComoLida, deletar, loading: notifLoading } = useNotificationContext();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [statsLoading, setStatsLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "alert",
-      title: "Integração com sistema externo falhou",
-      message: "A sincronização com o sistema de folha de pagamento não foi concluída hoje às 08:30",
-      time: "Há 2 horas",
-      category: "integracao",
-      read: false,
-    },
-    {
-      id: "2",
-      type: "warning",
-      title: "Documentos próximos do vencimento",
-      message: "5 documentos vencem nos próximos 7 dias. Ação necessária.",
-      time: "Há 3 horas",
-      category: "documentacao",
-      read: false,
-    },
-    {
-      id: "3",
-      type: "success",
-      title: "Novo prêmio de produtividade disponível",
-      message: "Prêmio do mês de outubro foi calculado e está disponível para visualização",
-      time: "Há 5 horas",
-      category: "premio",
-      read: false,
-    },
-    {
-      id: "4",
-      type: "info",
-      title: "Boletim de medição adicionado",
-      message: "Boletim de medição de outubro/2024 foi adicionado ao sistema",
-      time: "Hoje às 09:15",
-      category: "boletim",
-      read: false,
-    },
-    {
-      id: "5",
-      type: "alert",
-      title: "Falha na integração de dados",
-      message: "Erro ao sincronizar dados de colaboradores. Tentar novamente?",
-      time: "Ontem às 16:45",
-      category: "integracao",
-      read: true,
-    },
-    {
-      id: "6",
-      type: "success",
-      title: "Todos os documentos em dia",
-      message: "Nenhum documento com pendência no momento",
-      time: "Hoje às 08:00",
-      category: "documentacao",
-      read: true,
-    },
-  ]);
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
@@ -275,19 +222,102 @@ const Dashboard: React.FC = () => {
     loadStats();
   }, [loadStats]);
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
+  // Converter notificações do contexto para o formato do Dashboard
+  const dashboardNotifications = useMemo(() => {
+    return notificacoes.slice(0, 10).map((notif) => {
+      // Mapear tipo para categoria e ícone
+      let type: "alert" | "warning" | "success" | "info" = "info";
+      let category: "integracao" | "premio" | "boletim" | "documentacao" | "geral" = "geral";
+
+      switch (notif.tipo) {
+        case "documento_vencido":
+          type = "alert";
+          category = "documentacao";
+          break;
+        case "documento_vencendo":
+          type = "warning";
+          category = "documentacao";
+          break;
+        case "premio_lancado":
+          type = "success";
+          category = "premio";
+          break;
+        case "boletim_pendente":
+        case "boletim_vencendo":
+          type = "warning";
+          category = "boletim";
+          break;
+        case "sistema":
+          type = "info";
+          category = "geral";
+          break;
+        default:
+          type = "info";
+          category = "geral";
+      }
+
+      // Formatar tempo relativo
+      const now = new Date();
+      const diffMs = now.getTime() - notif.criadoEm.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      let timeStr = "";
+      if (diffHours < 1) {
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        timeStr = `Há ${diffMinutes} ${diffMinutes === 1 ? "minuto" : "minutos"}`;
+      } else if (diffHours < 24) {
+        timeStr = `Há ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`;
+      } else if (diffDays === 1) {
+        timeStr = "Ontem";
+      } else if (diffDays < 7) {
+        timeStr = `Há ${diffDays} dias`;
+      } else {
+        timeStr = notif.criadoEm.toLocaleDateString("pt-BR");
+      }
+
+      return {
+        id: notif.id,
+        type,
+        title: notif.titulo,
+        message: notif.mensagem,
+        time: timeStr,
+        category,
+        read: notif.lida,
+        link: notif.link,
+      };
+    });
+  }, [notificacoes]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await marcarComoLida(id);
+    } catch (error) {
+      console.error("Erro ao marcar notificação como lida:", error);
+    }
   };
 
-  const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+  const handleRemoveNotification = async (id: string) => {
+    try {
+      await deletar(id);
+    } catch (error) {
+      console.error("Erro ao remover notificação:", error);
+    }
   };
 
-  const getNotificationIcon = (type: Notification["type"]) => {
+  const handleNotificationClick = (notification: typeof dashboardNotifications[0]) => {
+    // Marcar como lida ao clicar
+    if (!notification.read) {
+      handleMarkAsRead(notification.id);
+    }
+    
+    // Navegar se tiver link
+    if (notification.link) {
+      navigate(notification.link);
+    }
+  };
+
+  const getNotificationIcon = (type: "alert" | "warning" | "success" | "info") => {
     switch (type) {
       case "alert":
         return <HiExclamationCircle className="icon-alert" />;
@@ -302,7 +332,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getCategoryLabel = (category: Notification["category"]) => {
+  const getCategoryLabel = (category: "integracao" | "premio" | "boletim" | "documentacao" | "geral") => {
     switch (category) {
       case "integracao":
         return "Integração";
@@ -317,9 +347,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const todayNotifications = notifications.filter((n) =>
-    n.time.includes("Hoje")
+  const todayNotifications = dashboardNotifications.filter((n) =>
+    n.time.includes("Há") || n.time.includes("Hoje") || n.time.includes("minuto") || n.time.includes("hora")
   );
 
   return (
@@ -567,20 +596,43 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-content">
           <div className="notifications-section">
             <div className="section-header">
-              <h2 className="section-title">Notificações e Alertas do Dia</h2>
-              <div className="section-badge">
-                {unreadCount} não lidas
+              <div className="section-header-left">
+                <h2 className="section-title">
+                  <HiBell className="section-icon" />
+                  Notificações e Alertas do Dia
+                </h2>
+                {naoLidas > 0 && (
+                  <div className="section-badge pulse">
+                    {naoLidas} não {naoLidas === 1 ? "lida" : "lidas"}
+                  </div>
+                )}
               </div>
+              {dashboardNotifications.length > 0 && (
+                <button
+                  className="btn-view-all"
+                  onClick={() => navigate(paths.notificacoes)}
+                >
+                  Ver todas <HiArrowRight />
+                </button>
+              )}
             </div>
 
-            <div className="notifications-list">
-              {todayNotifications.length > 0 ? (
-                todayNotifications.map((notification) => (
+            {notifLoading ? (
+              <div className="notifications-loading">
+                <div className="spinner"></div>
+                <p>Carregando notificações...</p>
+              </div>
+            ) : todayNotifications.length > 0 ? (
+              <div className="notifications-list">
+                {todayNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={`notification-card ${notification.type} ${
                       !notification.read ? "unread" : ""
-                    }`}
+                    } ${notification.link ? "clickable" : ""}`}
+                    onClick={() => notification.link && handleNotificationClick(notification)}
+                    role={notification.link ? "button" : undefined}
+                    tabIndex={notification.link ? 0 : undefined}
                   >
                     <div className="notification-icon">
                       {getNotificationIcon(notification.type)}
@@ -594,15 +646,21 @@ const Dashboard: React.FC = () => {
                           {!notification.read && (
                             <button
                               className="notification-action"
-                              onClick={() => markAsRead(notification.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notification.id);
+                              }}
                               title="Marcar como lida"
                             >
                               <HiCheckCircle />
                             </button>
                           )}
                           <button
-                            className="notification-action"
-                            onClick={() => removeNotification(notification.id)}
+                            className="notification-action notification-action-danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveNotification(notification.id);
+                            }}
                             title="Remover"
                           >
                             <HiX />
@@ -622,23 +680,27 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="empty-state">
-                  <HiCheckCircle className="empty-icon" />
-                  <p>Nenhuma notificação para hoje</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <HiCheckCircle className="empty-icon" />
+                <p>Nenhuma notificação recente</p>
+                <span className="empty-subtitle">Você está em dia com tudo!</span>
+              </div>
+            )}
           </div>
 
           <div className="alerts-section">
             <div className="section-header">
-              <h2 className="section-title">Alertas Recentes</h2>
+              <h2 className="section-title">
+                <HiExclamationCircle className="section-icon" />
+                Alertas Importantes
+              </h2>
             </div>
 
             <div className="alerts-list">
-              {notifications
+              {dashboardNotifications
                 .filter((n) => n.type === "alert" || n.type === "warning")
                 .slice(0, 3)
                 .map((alert) => (
@@ -646,7 +708,10 @@ const Dashboard: React.FC = () => {
                     key={alert.id}
                     className={`alert-card ${alert.type} ${
                       !alert.read ? "unread" : ""
-                    }`}
+                    } ${alert.link ? "clickable" : ""}`}
+                    onClick={() => alert.link && handleNotificationClick(alert)}
+                    role={alert.link ? "button" : undefined}
+                    tabIndex={alert.link ? 0 : undefined}
                   >
                     <div className="alert-icon">
                       {getNotificationIcon(alert.type)}
@@ -663,6 +728,13 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              
+              {dashboardNotifications.filter((n) => n.type === "alert" || n.type === "warning").length === 0 && (
+                <div className="empty-alerts">
+                  <HiCheckCircle className="empty-icon" />
+                  <p>Nenhum alerta no momento</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
