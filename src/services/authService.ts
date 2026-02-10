@@ -9,7 +9,8 @@ export interface IAuthService {
   register(credentials: RegisterCredentials): Promise<User>;
   logOut(): Promise<void>;
   observeAuthState(callback: (user: User | null) => void): () => void;
-  changePassword?(currentPassword: string, newPassword: string): Promise<void>; // opcional
+  changePassword?(currentPassword: string, newPassword: string): Promise<void>;
+  resetPassword?(email: string): Promise<void>;
 }
 
 // ✅ Usa Firebase Auth como backend real de autenticação

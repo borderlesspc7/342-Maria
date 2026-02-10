@@ -41,8 +41,12 @@ const ForgotPassword: React.FC = () => {
     setError("");
 
     try {
-      await authService.resetPassword(email);
-      setEmailSent(true);
+      if (typeof authService.resetPassword === "function") {
+        await authService.resetPassword(email);
+        setEmailSent(true);
+      } else {
+        setError("Recuperação de senha não está disponível nesta configuração.");
+      }
     } catch (error) {
       setError(
         error instanceof Error

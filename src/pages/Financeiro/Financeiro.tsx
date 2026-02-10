@@ -71,6 +71,7 @@ const formasPagamento: FormaPagamento[] = [
 
 const Financeiro: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [colaboradoresList, setColaboradoresList] = useState<Colaborador[]>([]);
   const [stats, setStats] = useState<FinanceiroStats>({
@@ -562,6 +563,7 @@ const Financeiro: React.FC = () => {
         {showModal && (
           <TransacaoModal
             transacao={editingTransacao}
+            colaboradoresList={colaboradoresList}
             onClose={handleCloseModal}
             onSave={handleSaveTransacao}
           />

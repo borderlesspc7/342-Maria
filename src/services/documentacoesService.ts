@@ -345,13 +345,15 @@ export const documentacoesService = {
           ? data.dataValidade
           : new Date(data.dataValidade as unknown as string)
         : list[idx].dataValidade;
+      const current = list[idx];
       list[idx] = {
-        ...list[idx],
+        ...current,
         ...data,
         dataValidade,
-        dataEmissao: data.dataEmissao ?? list[idx].dataEmissao,
+        dataEmissao: data.dataEmissao ?? current.dataEmissao,
         status: calcularStatusDocumento(dataValidade),
         atualizadoEm: new Date(),
+        anexos: current.anexos,
       };
       saveLocalDocumento(list[idx]);
       return;

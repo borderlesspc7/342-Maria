@@ -149,4 +149,10 @@ export const authService = {
       updatedAt: new Date(),
     });
   },
+
+  async resetPassword(_email: string): Promise<void> {
+    throw new Error(
+      "Recuperação de senha por e-mail não está disponível no modo local. Use o Firebase para habilitar."
+    );
+  },
 };

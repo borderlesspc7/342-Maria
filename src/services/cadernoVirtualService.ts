@@ -358,10 +358,16 @@ export const cadernoVirtualService = {
         item.id === id
           ? {
               ...item,
-              ...data,
+              tipoMovimentacao: data.tipoMovimentacao ?? item.tipoMovimentacao,
+              descricao: data.descricao ?? item.descricao,
               valor: data.valor !== undefined ? Number(data.valor) : item.valor,
               dataLancamento: data.dataLancamento ?? item.dataLancamento,
+              status: data.status ?? item.status,
+              colaboradorId: data.colaboradorId ?? item.colaboradorId,
+              colaboradorNome: data.colaboradorNome ?? item.colaboradorNome,
+              observacoes: data.observacoes !== undefined ? data.observacoes : item.observacoes,
               atualizadoEm: now,
+              anexos: item.anexos,
             }
           : item
       );

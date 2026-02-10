@@ -33,16 +33,6 @@ const MESES_PT: string[] = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-interface Notification {
-  id: string;
-  type: "alert" | "info" | "success" | "warning";
-  title: string;
-  message: string;
-  time: string;
-  category: "integracao" | "premio" | "boletim" | "documentacao" | "geral";
-  read: boolean;
-}
-
 interface DashboardStats {
   colaboradores: number;
   documentosPendentes: number;

@@ -882,12 +882,14 @@ const DocumentoModal: React.FC<DocumentoModalProps> = ({
 
 interface TreinamentoModalProps {
   treinamento: Treinamento | null;
+  colaboradoresList: Colaborador[];
   onClose: () => void;
-  onSave: (data: TreinamentoFormData) => void;
+  onSave: (data: TreinamentoFormData) => Promise<void>;
 }
 
 const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
   treinamento,
+  colaboradoresList,
   onClose,
   onSave,
 }) => {
@@ -1012,7 +1014,7 @@ const TreinamentoModal: React.FC<TreinamentoModalProps> = ({
               required
               size={5}
             >
-              {colaboradoresList.map((colab) => (
+              {colaboradoresList.map((colab: Colaborador) => (
                 <option key={colab.id} value={colab.id}>
                   {colab.nome}
                 </option>

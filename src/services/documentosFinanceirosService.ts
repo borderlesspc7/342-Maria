@@ -34,7 +34,6 @@ const NOTAS_FISCAIS_COLLECTION = "notas_fiscais";
 const COMPROVANTES_COLLECTION = "comprovantes_bancarios";
 const STORAGE_PATH = "documentos_financeiros";
 const LOCAL_NOTAS_KEY = "documentos_financeiros_notas_local";
-const LOCAL_COMPROVANTES_KEY = "documentos_financeiros_comprovantes_local";
 const CREATE_TIMEOUT_MS = 20000;
 const LIST_TIMEOUT_MS = 10000;
 

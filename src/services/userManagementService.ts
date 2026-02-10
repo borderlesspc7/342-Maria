@@ -9,7 +9,7 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../lib/firebaseconfig";
 import type { User, RegisterCredentials } from "../types/user";
 import getFirebaseErrorMessage from "../components/ui/ErrorMessage";

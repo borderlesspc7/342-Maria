@@ -124,9 +124,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Salário",
@@ -150,9 +150,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Reembolso",
       categoria: "Reembolso",
@@ -172,9 +172,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Vale Transporte",
@@ -198,9 +198,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Vale Alimentação",
@@ -224,9 +224,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Pagamento",
       categoria: "Prêmio",
@@ -246,9 +246,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Reembolso",
       categoria: "Reembolso",
@@ -265,9 +265,9 @@ const getMockTransacoes = (): Transacao[] => {
     {
       id: generateTempId(),
       colaboradorId: placeholderColab.id,
-      colaboradorNome: colaborador.nome,
+      colaboradorNome: placeholderColab.nome,
       cpf: placeholderColab.cpf,
-      cargo: colaborador.cargo,
+      cargo: placeholderColab.cargo,
       setor: placeholderColab.setor,
       tipoTransacao: "Desconto",
       categoria: "Despesa Operacional",
@@ -550,12 +550,14 @@ export const financeiroService = {
       const valor = formData.valor !== undefined
         ? (typeof formData.valor === "number" ? formData.valor : parseFloat(String(formData.valor)) || 0)
         : local[idx].valor;
+      const currentTrans = local[idx];
       local[idx] = {
-        ...local[idx],
+        ...currentTrans,
         ...formData,
         valor,
-        dataVencimento: formData.dataVencimento ?? local[idx].dataVencimento,
+        dataVencimento: formData.dataVencimento ?? currentTrans.dataVencimento,
         atualizadoEm: new Date(),
+        anexos: currentTrans.anexos,
       };
       saveLocalTransacoes(local);
       return;

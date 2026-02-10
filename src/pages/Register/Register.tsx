@@ -15,7 +15,7 @@ const Register: React.FC = () => {
     confirmPassword: "",
     role: "colaborador",
   });
-  const [errors, setErrors] = useState<Partial<RegisterCredentials>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof RegisterCredentials, string>>>({});
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (
@@ -36,7 +36,7 @@ const Register: React.FC = () => {
   };
 
   const validateForm = () => {
-    const newErrors: Partial<RegisterCredentials> = {};
+    const newErrors: Partial<Record<keyof RegisterCredentials, string>> = {};
 
     if (!formData.name.trim()) {
       newErrors.name = "Nome completo é obrigatório";
